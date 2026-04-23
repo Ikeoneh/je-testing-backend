@@ -59,7 +59,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-ai_client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY", ""))
+ai_client = anthropic.Anthropic(api_key="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")
 
 
 # =============================================================================
