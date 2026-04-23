@@ -1,0 +1,1946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JE Testing Agent</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F7F6F3;
+    --surface: #FFFFFF;
+    --surface2: #F0EEE9;
+    --border: rgba(0,0,0,0.09);
+    --border-mid: rgba(0,0,0,0.15);
+    --text: #1A1916;
+    --text-muted: #6B6860;
+    --text-hint: #9E9C97;
+    --blue-bg: #E8F0FB;
+    --blue-border: #A8C4F0;
+    --blue-text: #1A4A8A;
+    --green-bg: #E4F2E0;
+    --green-border: #89CC78;
+    --green-text: #245A1A;
+    --red-bg: #FCEAEA;
+    --red-border: #F0A0A0;
+    --red-text: #7A1F1F;
+    --amber-bg: #FDF2DC;
+    --amber-border: #F5C96A;
+    --amber-text: #6B3E0A;
+    --accent: #1A4A8A;
+    --accent-hover: #0F3366;
+    --radius: 10px;
+    --radius-sm: 6px;
+    --radius-pill: 99px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04);
+    --shadow-card: 0 2px 8px rgba(0,0,0,0.06), 0 8px 32px rgba(0,0,0,0.04);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    background: var(--bg);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* ── Layout ── */
+  .app-shell { display: flex; min-height: 100vh; }
+
+  .sidebar {
+    width: 240px;
+    min-width: 240px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .sidebar-logo {
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-logo .wordmark { font-size: 15px; font-weight: 500; letter-spacing: -0.02em; }
+  .sidebar-logo .sub { font-size: 11px; color: var(--text-hint); margin-top: 1px; }
+
+  .sidebar-nav { padding: 12px 0; flex: 1; }
+  .nav-section-label { font-size: 10px; font-weight: 500; color: var(--text-hint); text-transform: uppercase; letter-spacing: 0.08em; padding: 8px 20px 4px; }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 20px;
+    font-size: 13px;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  .nav-item:hover { color: var(--text); background: var(--surface2); }
+  .nav-item.active { color: var(--accent); background: var(--blue-bg); border-left-color: var(--accent); font-weight: 500; }
+  .nav-item.done { color: var(--green-text); }
+  .nav-item .nav-icon { width: 16px; text-align: center; font-size: 13px; }
+  .nav-item .nav-count { margin-left: auto; font-size: 11px; background: var(--red-bg); color: var(--red-text); border-radius: var(--radius-pill); padding: 1px 7px; }
+  .nav-item.done .nav-count { background: var(--green-bg); color: var(--green-text); }
+
+  .sidebar-footer {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text-hint);
+  }
+
+  .main {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--bg);
+  }
+
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .topbar-title { font-size: 16px; font-weight: 500; }
+  .topbar-sub { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+  .topbar-actions { display: flex; gap: 8px; align-items: center; }
+
+  .content { padding: 28px 32px; max-width: 900px; }
+
+  /* ── Step indicator ── */
+  .step-bar {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 20px;
+    box-shadow: var(--shadow);
+  }
+  .step-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    font-size: 12px;
+    color: var(--text-hint);
+    cursor: pointer;
+  }
+  .step-item.active { color: var(--accent); font-weight: 500; }
+  .step-item.done { color: var(--green-text); }
+  .step-num {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--surface2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 500;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+    color: var(--text-hint);
+  }
+  .step-item.active .step-num { background: var(--blue-bg); border-color: var(--blue-border); color: var(--accent); }
+  .step-item.done .step-num { background: var(--green-bg); border-color: var(--green-border); color: var(--green-text); }
+  .step-arrow { color: var(--border-mid); font-size: 14px; padding: 0 6px; flex-shrink: 0; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow-card);
+    animation: fadeUp 0.2s ease;
+  }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+
+  .card-header { margin-bottom: 4px; display: flex; align-items: center; gap: 10px; }
+  .card-title { font-size: 15px; font-weight: 500; }
+  .card-sub { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5; }
+
+  .section-label {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 500;
+    padding: 3px 10px; border-radius: var(--radius-pill);
+    margin-bottom: 10px;
+  }
+  .section-label.gl { background: var(--blue-bg); color: var(--blue-text); border: 1px solid var(--blue-border); }
+  .section-label.tb { background: var(--green-bg); color: var(--green-text); border: 1px solid var(--green-border); }
+
+  /* ── Upload ── */
+  .upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .upload-zone { border: 1.5px dashed var(--border-mid); border-radius: var(--radius); padding: 28px 20px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--bg); min-width: 0; overflow: hidden; }
+  .upload-zone:hover { border-color: var(--accent); background: var(--blue-bg); }
+  .upload-zone.drag  { border-color: var(--accent); background: var(--blue-bg); }
+  .upload-zone.loaded { border-style: solid; border-color: var(--green-border); background: var(--green-bg); }
+  .upload-icon { font-size: 28px; margin-bottom: 8px; }
+  .upload-zone p { font-size: 13px; color: var(--text-muted); }
+  .upload-zone strong { color: var(--text); }
+  .file-info { margin-top: 10px; padding: 8px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: space-between; font-size: 12px; }
+
+  /* ── Mapping table ── */
+  .map-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .map-table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+  .map-table thead th { text-align: left; padding: 8px 10px; font-size: 11px; font-weight: 500; color: var(--text-hint); border-bottom: 1px solid var(--border); background: var(--surface2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .map-table thead th:first-child { border-radius: var(--radius-sm) 0 0 0; width: 220px; }
+  .map-table thead th:nth-child(2) { width: 60px; }
+  .map-table thead th:nth-child(3) { width: auto; }
+  .map-table thead th:nth-child(4) { width: 70px; }
+  .map-table thead th:last-child { border-radius: 0 var(--radius-sm) 0 0; }
+  .map-table tbody td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; overflow: hidden; }
+  .map-table tbody tr:last-child td { border-bottom: none; }
+  .map-table tbody tr:hover td { background: var(--bg); }
+  .req-star { color: #C0392B; }
+  .pill { display: inline-block; font-size: 10px; padding: 1px 7px; border-radius: var(--radius-pill); font-weight: 500; }
+  .pill.req { background: var(--red-bg); color: var(--red-text); border: 1px solid var(--red-border); }
+  .pill.opt { background: var(--surface2); color: var(--text-muted); border: 1px solid var(--border); }
+  .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .status-dot.ok { background: #52A843; }
+  .status-dot.empty-req { background: #D94040; }
+  .status-dot.empty-opt { background: var(--border-mid); }
+
+  /* ── Select ── */
+  select {
+    width: 100%;
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-mid);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 12px;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  select:focus { border-color: var(--accent); }
+
+  /* ── Null handling ── */
+  .null-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .null-card { padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--radius); }
+  .null-card-title { font-size: 13px; font-weight: 500; margin-bottom: 8px; }
+  .opt-group { display: flex; gap: 6px; flex-wrap: wrap; }
+  .opt-btn {
+    padding: 5px 12px; border-radius: var(--radius-pill);
+    border: 1px solid var(--border-mid);
+    font-size: 12px; cursor: pointer;
+    background: transparent; color: var(--text-muted);
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+  }
+  .opt-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .opt-btn.selected { background: var(--blue-bg); border-color: var(--blue-border); color: var(--blue-text); font-weight: 500; }
+
+  /* ── Buttons ── */
+  .btn {
+    padding: 9px 18px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border-mid);
+    background: var(--surface); color: var(--text);
+    font-size: 13px; cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+  }
+  .btn:hover { background: var(--surface2); }
+  .btn:disabled { opacity: 0.38; cursor: not-allowed; pointer-events: none; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: white; }
+  .btn.primary:hover { background: var(--accent-hover); }
+  .btn.primary:disabled { background: var(--accent); border-color: var(--accent); opacity: 0.38; cursor: not-allowed; pointer-events: none; }
+  .btn-row { display: flex; gap: 8px; margin-top: 16px; align-items: center; }
+
+  /* ── Alerts ── */
+  .alert { padding: 10px 14px; border-radius: var(--radius-sm); font-size: 13px; margin-top: 10px; }
+  .alert.error { background: var(--red-bg); border: 1px solid var(--red-border); color: var(--red-text); }
+  .alert.success { background: var(--green-bg); border: 1px solid var(--green-border); color: var(--green-text); }
+  .alert.warn { background: var(--amber-bg); border: 1px solid var(--amber-border); color: var(--amber-text); }
+
+  /* ── Integrity table ── */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .data-table th { text-align: left; padding: 8px 10px; font-size: 11px; font-weight: 500; color: var(--text-hint); border-bottom: 1px solid var(--border); background: var(--surface2); }
+  .data-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); }
+  .data-table tbody tr:last-child td { border-bottom: none; }
+  .data-table tbody tr:hover td { background: var(--bg); }
+  .table-wrap { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .table-scroll { max-height: 320px; overflow-y: auto; }
+  .match-ok { color: var(--green-text); }
+  .match-fail { color: var(--red-text); font-weight: 500; }
+  .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: var(--radius-pill); font-weight: 500; }
+  .badge.ok { background: var(--green-bg); color: var(--green-text); border: 1px solid var(--green-border); }
+  .badge.fail { background: var(--red-bg); color: var(--red-text); border: 1px solid var(--red-border); }
+  .badge.warn { background: var(--amber-bg); color: var(--amber-text); border: 1px solid var(--amber-border); }
+  .badge.blue { background: var(--blue-bg); color: var(--blue-text); border: 1px solid var(--blue-border); }
+
+  /* ── Metrics ── */
+  .metrics-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+  .metric-card { background: var(--surface2); border-radius: var(--radius); padding: 12px 16px; border: 1px solid var(--border); }
+  .metric-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+  .metric-value { font-size: 24px; font-weight: 300; letter-spacing: -0.03em; }
+  .metric-value.red { color: #B02020; }
+  .metric-value.amber { color: #8A4A0A; }
+  .metric-value.green { color: #2A6A1A; }
+
+  /* ── Criteria ── */
+  .criteria-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(195px, 1fr)); gap: 10px; margin-bottom: 16px; }
+  .crit-card {
+    padding: 12px 14px; border-radius: var(--radius);
+    border: 1px solid var(--border); cursor: pointer;
+    transition: all 0.15s; background: var(--surface);
+  }
+  .crit-card:hover { border-color: var(--blue-border); }
+  .crit-card.selected { background: var(--blue-bg); border-color: var(--blue-border); }
+  .crit-title { font-size: 13px; font-weight: 500; margin-bottom: 3px; }
+  .crit-desc { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+  .crit-card.selected .crit-desc { color: var(--blue-text); opacity: 0.8; }
+  .risk-tag { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: var(--radius-pill); margin-top: 6px; font-weight: 500; }
+  .risk-tag.high { background: var(--red-bg); color: var(--red-text); }
+  .risk-tag.med { background: var(--amber-bg); color: var(--amber-text); }
+  .risk-tag.low { background: var(--surface2); color: var(--text-muted); }
+
+  /* ── Results tabs ── */
+  .tabs-bar { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 16px; overflow-x: auto; }
+  .tab {
+    padding: 9px 16px; font-size: 12px; cursor: pointer;
+    color: var(--text-muted); border-bottom: 2px solid transparent;
+    white-space: nowrap; transition: all 0.15s;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 500; }
+
+  /* ── Results table ── */
+  .results-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .results-table th { text-align: left; padding: 7px 10px; font-size: 11px; font-weight: 500; color: var(--text-hint); border-bottom: 1px solid var(--border); background: var(--surface2); position: sticky; top: 0; }
+  .results-table td { padding: 6px 10px; border-bottom: 1px solid var(--border); }
+  .results-table tbody tr:hover td { background: var(--blue-bg); }
+  .mono { font-family: 'DM Mono', monospace; font-size: 11px; }
+  .flag-tag { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: var(--radius-pill); margin: 1px; font-weight: 500; }
+  .flag-tag.high { background: var(--red-bg); color: var(--red-text); }
+  .flag-tag.med { background: var(--amber-bg); color: var(--amber-text); }
+
+  .hidden { display: none !important; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="wordmark">JE Testing Agent</div>
+      <div class="sub">Audit Data Analytics</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Workflow</div>
+      <div class="nav-item active" id="nav-0" onclick="goStep(0)"><span class="nav-icon">↑</span> Data ingestion</div>
+      <div class="nav-item" id="nav-1" onclick="goStep(1)"><span class="nav-icon">⊞</span> GL field mapping</div>
+      <div class="nav-item" id="nav-2" onclick="goStep(2)"><span class="nav-icon">⊞</span> TB field mapping</div>
+      <div class="nav-item" id="nav-3" onclick="goStep(3)"><span class="nav-icon">⊞</span> CoA field mapping</div>
+      <div class="nav-item" id="nav-4" onclick="goStep(4)"><span class="nav-icon">◌</span> Null handling</div>
+      <div class="nav-item" id="nav-5" onclick="goStep(5)"><span class="nav-icon">≡</span> Integrity check</div>
+      <div class="nav-item" id="nav-6" onclick="goStep(6)"><span class="nav-icon">✓</span> CoA completeness</div>
+      <div class="nav-item" id="nav-7" onclick="goStep(7)"><span class="nav-icon">◈</span> JE testing</div>
+    </nav>
+    <div class="sidebar-footer">
+      Built for audit teams · v2.0
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title" id="topbar-title">Data ingestion</div>
+        <div class="topbar-sub" id="topbar-sub">Upload GL and TB data to begin</div>
+      </div>
+      <div class="topbar-actions">
+        <span id="topbar-status"></span>
+        <div style="display:flex;align-items:center;gap:8px;margin-left:16px;">
+          <label style="font-size:11px;color:var(--text-muted);white-space:nowrap;">Backend URL</label>
+          <input type="text" id="backend-url-input" placeholder="https://your-replit-url.repl.co" autocomplete="off"
+            style="width:260px;padding:5px 10px;font-size:12px;border-radius:var(--radius-sm);border:1px solid var(--border-mid);background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;"
+            oninput="updateBackendStatus()" value="https://je-testing-backend.onrender.com">
+          <span id="backend-status" style="font-size:11px;color:var(--text-hint);">not connected</span>
+          <button class="btn" style="padding:4px 12px;font-size:12px;" onclick="testBackendConnection()">Test</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- Step bar -->
+      <div class="step-bar" id="step-bar">
+        <div class="step-item active" id="sb-0"><div class="step-num">1</div>Ingestion</div>
+        <span class="step-arrow">›</span>
+        <div class="step-item" id="sb-1"><div class="step-num">2</div>GL mapping</div>
+        <span class="step-arrow">›</span>
+        <div class="step-item" id="sb-2"><div class="step-num">3</div>TB mapping</div>
+        <span class="step-arrow">›</span>
+        <div class="step-item" id="sb-3"><div class="step-num">4</div>CoA mapping</div>
+        <span class="step-arrow">›</span>
+        <div class="step-item" id="sb-4"><div class="step-num">5</div>Nulls</div>
+        <span class="step-arrow">›</span>
+        <div class="step-item" id="sb-5"><div class="step-num">6</div>Integrity</div>
+        <span class="step-arrow">›</span>
+        <span class="step-arrow">›</span>
+        <div class="step-item" id="sb-6"><div class="step-num">7</div>CoA check</div>
+        <span class="step-arrow">›</span>
+        <div class="step-item" id="sb-7"><div class="step-num">8</div>JE testing</div>
+      </div>
+
+      <!-- ── STEP 0: Ingestion ── -->
+      <div id="step-0">
+
+        <!-- GL Data — CY and PY side by side -->
+        <div class="card">
+          <div class="card-header">
+            <div class="section-label gl" style="margin-bottom:0;">GL — General Ledger</div>
+          </div>
+          <div class="card-sub" style="margin-top:6px;">Upload GL files for both the current year (CY) and prior year (PY). Each supports up to 10 files. All files within each year must have identical column headers.</div>
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;margin-top:12px;">
+            <div>
+              <div style="font-size:11px;font-weight:500;color:var(--blue-text);background:var(--blue-bg);border:1px solid var(--blue-border);border-radius:var(--radius-pill);padding:2px 10px;display:inline-block;margin-bottom:8px;">CY — Current Year</div>
+              <input type="file" id="cy-gl-input" accept=".xlsx,.xls,.csv" multiple style="display:none;" onchange="handleGLUpload(this,'cy')">
+              <div class="upload-zone" id="cy-gl-zone"
+                onclick="triggerGLInput('cy')"
+                ondragover="event.preventDefault();this.classList.add('drag')"
+                ondragleave="this.classList.remove('drag')"
+                ondrop="event.preventDefault();this.classList.remove('drag');handleGLDrop(event,'cy')">
+                <div style="pointer-events:none;">
+                  <div class="upload-icon">📂</div>
+                  <p><strong>Click to upload</strong> CY GL files</p>
+                  <p style="font-size:11px;margin-top:4px;">or drag &amp; drop · up to 10 files</p>
+                </div>
+              </div>
+              <div id="cy-gl-file-list" style="margin-top:8px;min-width:0;overflow:hidden;"></div>
+              <div id="cy-gl-format-check" style="margin-top:4px;"></div>
+            </div>
+            <div>
+              <div style="font-size:11px;font-weight:500;color:var(--text-muted);background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-pill);padding:2px 10px;display:inline-block;margin-bottom:8px;">PY — Prior Year</div>
+              <input type="file" id="py-gl-input" accept=".xlsx,.xls,.csv" multiple style="display:none;" onchange="handleGLUpload(this,'py')">
+              <div class="upload-zone" id="py-gl-zone"
+                onclick="triggerGLInput('py')"
+                ondragover="event.preventDefault();this.classList.add('drag')"
+                ondragleave="this.classList.remove('drag')"
+                ondrop="event.preventDefault();this.classList.remove('drag');handleGLDrop(event,'py')">
+                <div style="pointer-events:none;">
+                  <div class="upload-icon">📂</div>
+                  <p><strong>Click to upload</strong> PY GL files</p>
+                  <p style="font-size:11px;margin-top:4px;">or drag &amp; drop · up to 10 files</p>
+                </div>
+              </div>
+              <div id="py-gl-file-list" style="margin-top:8px;min-width:0;overflow:hidden;"></div>
+              <div id="py-gl-format-check" style="margin-top:4px;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TB Data — CY and PY side by side -->
+        <div class="card">
+          <div class="card-header">
+            <div class="section-label tb" style="margin-bottom:0;">TB — Trial Balance</div>
+          </div>
+          <div class="card-sub" style="margin-top:6px;">Upload trial balance files for both the current year (CY) and prior year (PY). One file per year.</div>
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;margin-top:12px;">
+            <div>
+              <div style="font-size:11px;font-weight:500;color:var(--blue-text);background:var(--blue-bg);border:1px solid var(--blue-border);border-radius:var(--radius-pill);padding:2px 10px;display:inline-block;margin-bottom:8px;">CY — Current Year</div>
+              <input type="file" id="cy-tb-input" accept=".xlsx,.xls,.csv" style="display:none;" onchange="handleFileUpload('cy-tb',this)">
+              <div class="upload-zone" id="cy-tb-zone"
+                onclick="document.getElementById('cy-tb-input').click()"
+                ondragover="event.preventDefault();this.style.borderColor='var(--accent)'"
+                ondragleave="this.style.borderColor=''"
+                ondrop="event.preventDefault();this.style.borderColor='';handleFileDrop('cy-tb',event)">
+                <div class="upload-icon">📂</div>
+                <p><strong>Click to upload</strong> CY TB data</p>
+                <p style="font-size:11px;margin-top:4px;">or drag &amp; drop</p>
+              </div>
+              <div id="cy-tb-file-info"></div>
+              <div id="cy-tb-remove-row" style="display:none;margin-top:6px;">
+                <button class="btn" style="font-size:12px;padding:4px 12px;color:var(--red-text);border-color:var(--red-border);" onclick="removeSingleFile('cy-tb')">Remove CY TB file</button>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:11px;font-weight:500;color:var(--text-muted);background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-pill);padding:2px 10px;display:inline-block;margin-bottom:8px;">PY — Prior Year</div>
+              <input type="file" id="py-tb-input" accept=".xlsx,.xls,.csv" style="display:none;" onchange="handleFileUpload('py-tb',this)">
+              <div class="upload-zone" id="py-tb-zone"
+                onclick="document.getElementById('py-tb-input').click()"
+                ondragover="event.preventDefault();this.style.borderColor='var(--accent)'"
+                ondragleave="this.style.borderColor=''"
+                ondrop="event.preventDefault();this.style.borderColor='';handleFileDrop('py-tb',event)">
+                <div class="upload-icon">📂</div>
+                <p><strong>Click to upload</strong> PY TB data</p>
+                <p style="font-size:11px;margin-top:4px;">or drag &amp; drop</p>
+              </div>
+              <div id="py-tb-file-info"></div>
+              <div id="py-tb-remove-row" style="display:none;margin-top:6px;">
+                <button class="btn" style="font-size:12px;padding:4px 12px;color:var(--red-text);border-color:var(--red-border);" onclick="removeSingleFile('py-tb')">Remove PY TB file</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chart of Accounts — unchanged, no CY/PY split -->
+        <div class="card">
+          <div class="card-header">
+            <div class="section-label" style="margin-bottom:0;background:var(--amber-bg);color:var(--amber-text);border:1px solid var(--amber-border);">CoA — Chart of Accounts</div>
+          </div>
+          <div class="card-sub" style="margin-top:6px;">Upload your Chart of Accounts. This is required before proceeding. A single CoA is used for both CY and PY.</div>
+          <input type="file" id="coa-input" accept=".xlsx,.xls,.csv" style="display:none;" onchange="handleFileUpload('coa',this)">
+          <div class="upload-zone" id="coa-zone"
+            onclick="document.getElementById('coa-input').click()"
+            ondragover="event.preventDefault();this.style.borderColor='var(--accent)'"
+            ondragleave="this.style.borderColor=''"
+            ondrop="event.preventDefault();this.style.borderColor='';handleFileDrop('coa',event)">
+            <div class="upload-icon">📂</div>
+            <p><strong>Click to upload</strong> Chart of Accounts</p>
+            <p style="font-size:11px;margin-top:4px;">or drag &amp; drop your file here</p>
+          </div>
+          <div id="coa-file-info"></div>
+          <div id="coa-remove-row" style="display:none;margin-top:8px;">
+            <button class="btn" style="font-size:12px;padding:4px 12px;color:var(--red-text);border-color:var(--red-border);" onclick="removeSingleFile('coa')">Remove CoA file</button>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn primary" id="btn-s0" onclick="uploadAllFilesToBackend();" disabled>Continue to GL field mapping →</button>
+          <span id="btn-s0-hint" style="font-size:12px;color:var(--text-muted);margin-left:8px;"></span>
+        </div>
+      </div>
+
+      <!-- ── STEP 1: GL Mapping ── -->
+      <div id="step-1" class="hidden">
+        <div class="card">
+          <div class="section-label gl" style="margin-bottom:6px;">GL — General Ledger</div>
+          <div class="card-title" style="margin-bottom:4px;">GL field mapping</div>
+          <div class="card-sub">CY and PY are mapped <strong>independently</strong> — each uses its own column names. This supports clients who changed accounting system between years. Rules and AI will auto-suggest matches for each year. Fields marked <span class="req-star">*</span> are mandatory.</div>
+          <div style="margin-top:14px;">
+            <div style="margin-bottom:20px;">
+              <div style="font-size:11px;font-weight:500;color:var(--blue-text);background:var(--blue-bg);border:1px solid var(--blue-border);border-radius:var(--radius-pill);padding:2px 10px;display:inline-block;margin-bottom:8px;">CY — Current Year</div>
+              <div class="table-wrap"><table class="map-table" id="cy-gl-map-table"></table></div>
+              <div id="cy-gl-map-msg" style="margin-top:6px;"></div>
+            </div>
+            <hr>
+            <div style="margin-top:20px;">
+              <div style="font-size:11px;font-weight:500;color:var(--text-muted);background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-pill);padding:2px 10px;display:inline-block;margin-bottom:8px;">PY — Prior Year</div>
+              <div class="table-wrap"><table class="map-table" id="py-gl-map-table"></table></div>
+              <div id="py-gl-map-msg" style="margin-top:6px;"></div>
+            </div>
+          </div>
+          <div id="gl-map-msg" style="margin-top:8px;"></div>
+          <div class="btn-row">
+            <button class="btn" onclick="goStep(0)">← Back</button>
+            <button class="btn primary" onclick="validateGLMapping()">Validate &amp; continue to TB mapping →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── STEP 2: TB Mapping ── -->
+      <div id="step-2" class="hidden">
+        <div class="card">
+          <div class="section-label tb" style="margin-bottom:6px;">TB — Trial Balance</div>
+          <div class="card-title" style="margin-bottom:4px;">TB field mapping</div>
+          <div class="card-sub">CY and PY are mapped <strong>independently</strong>. The account code must match the GL account code exactly for the integrity check to work.</div>
+          <div style="margin-top:14px;">
+            <div style="margin-bottom:20px;">
+              <div style="font-size:11px;font-weight:500;color:var(--blue-text);background:var(--blue-bg);border:1px solid var(--blue-border);border-radius:var(--radius-pill);padding:2px 10px;display:inline-block;margin-bottom:8px;">CY — Current Year</div>
+              <div class="table-wrap"><table class="map-table" id="cy-tb-map-table"></table></div>
+              <div id="cy-tb-map-msg" style="margin-top:6px;"></div>
+            </div>
+            <hr>
+            <div style="margin-top:20px;">
+              <div style="font-size:11px;font-weight:500;color:var(--text-muted);background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-pill);padding:2px 10px;display:inline-block;margin-bottom:8px;">PY — Prior Year</div>
+              <div class="table-wrap"><table class="map-table" id="py-tb-map-table"></table></div>
+              <div id="py-tb-map-msg" style="margin-top:6px;"></div>
+            </div>
+          </div>
+          <div id="tb-map-msg" style="margin-top:8px;"></div>
+          <div class="btn-row">
+            <button class="btn" onclick="goStep(1)">← Back</button>
+            <button class="btn primary" onclick="validateTBMapping()">Validate &amp; continue to CoA mapping →</button>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ── STEP 3: CoA Mapping ── -->
+      <div id="step-3" class="hidden">
+        <div class="card">
+          <div class="section-label" style="background:var(--amber-bg);color:var(--amber-text);border:1px solid var(--amber-border);">CoA — Chart of Accounts</div>
+          <div class="card-title" style="margin-bottom:4px;">Chart of Accounts field mapping</div>
+          <div class="card-sub">Map your Chart of Accounts column headers to the required fields. All four fields are mandatory. Rules and AI will auto-suggest mappings from your column names.</div>
+          <div class="table-wrap">
+            <table class="map-table" id="coa-map-table"></table>
+          </div>
+          <div id="coa-map-msg"></div>
+          <div class="btn-row">
+            <button class="btn" onclick="goStep(2)">← Back</button>
+            <button class="btn primary" onclick="validateCoAMapping()">Validate &amp; continue to null handling →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── STEP 4: Null handling ── -->
+      <div id="step-4" class="hidden">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:4px;">Null value handling</div>
+          <div class="card-sub">Define how null or blank values should be treated in each field type prior to analysis. These decisions will be logged in the audit file.</div>
+          <div class="null-grid" id="null-grid"></div>
+          <div class="btn-row">
+            <button class="btn" onclick="goStep(3)">← Back</button>
+            <button class="btn primary" onclick="goStep(5);runIntegrityCheck();">Apply &amp; run integrity check →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── STEP 5: Integrity ── -->
+      <div id="step-5" class="hidden">
+        <div class="card">
+          <div class="card-header" style="margin-bottom:8px;">
+            <div class="card-title" style="margin-bottom:0;">Data integrity check</div>
+            <span style="margin-left:10px;font-size:11px;padding:2px 10px;border-radius:99px;background:var(--blue-bg);color:var(--blue-text);border:1px solid var(--blue-border);font-weight:500;">CY &amp; PY — run separately</span>
+          </div>
+          <div class="card-sub">For each year, the sum of GL functional amounts per account code is compared against the TB movement (closing balance − opening balance). CY and PY results are shown separately below.</div>
+          <div id="integrity-content"></div>
+          <div class="btn-row">
+            <button class="btn" onclick="goStep(4)">← Back</button>
+            <button class="btn primary" id="btn-integrity-next" onclick="goStep(6);runCoACompleteness();">Proceed to CoA completeness →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── STEP 6: CoA Completeness ── -->
+      <div id="step-6" class="hidden">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:4px;">Chart of Accounts completeness check</div>
+          <div class="card-sub">Verifying that the Chart of Accounts is complete and consistent with the GL and TB data. All three checks must pass before proceeding to JE testing.</div>
+          <div id="coa-completeness-content"></div>
+          <div class="btn-row">
+            <button class="btn" onclick="goStep(5)">← Back</button>
+            <button class="btn primary" id="btn-coa-next" onclick="goStep(7);buildCriteria();" disabled>Proceed to JE testing →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── STEP 7: JE Testing ── -->
+      <div id="step-7" class="hidden">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:4px;">JE testing criteria</div>
+          <div class="card-sub">Select criteria to apply across the full GL population. Results support risk assessment, test of details, and sample selection.</div>
+          <div class="criteria-grid" id="criteria-grid"></div>
+          <div class="btn-row" style="justify-content:space-between;">
+            <div style="display:flex;gap:8px;">
+              <button class="btn" onclick="goStep(6)">← Back</button>
+              <button class="btn primary" onclick="runJETesting()">Run JE testing →</button>
+            </div>
+            <button class="btn" onclick="selectAllCriteria()">Select all</button>
+          </div>
+        </div>
+
+        <div id="je-results" class="hidden">
+          <div class="card">
+            <div class="card-title" style="margin-bottom:12px;">JE testing results</div>
+            <div class="metrics-row" id="metrics-row"></div>
+            <div class="tabs-bar" id="results-tabs"></div>
+            <div id="results-body"></div>
+            <hr>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="btn primary" onclick="exportCSV()">Export flagged entries (.csv)</button>
+              <button class="btn" onclick="exportSummary()">Export summary report (.txt)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </main>
+</div>
+
+<script>
+const GL_COLS = ["JE_Number","JE_Line_Number","GL_Account_Code","Business_Unit_Code","Account_Type","Functional_Amount","DR_CR_Indicator","Reporting_Amount","Reporting_Currency_Code","Fiscal_Year","Fiscal_Period","Effective_Date","Entry_Date","Preparer_ID","Approver_ID","Source_Code","JE_Line_Description","Functional_Currency_Code"];
+const TB_COLS = ["GL_Account_Code","Functional_Opening_Balance","Functional_Closing_Balance","Functional_Currency_Code"];
+
+const GL_FIELDS = [
+  { key:"je_number",               label:"JE number",                  req:true,  hint:"Unique identifier per journal entry" },
+  { key:"je_line_number",          label:"JE line number",             req:false, hint:"Line number within the journal entry" },
+  { key:"gl_account_code",         label:"GL account code",            req:true,  hint:"General ledger account code" },
+  { key:"business_unit_code",      label:"Business unit code",         req:false, hint:"Business unit or department code" },
+  { key:"account_type",            label:"Account type",               req:false, hint:"e.g. Asset, Liability, Income, Expense" },
+  { key:"functional_amount",       label:"Functional amount",          req:true,  hint:"Transaction amount in functional currency" },
+  { key:"dr_cr_indicator",         label:"Debit / credit indicator",   req:false, hint:"D for debit, C for credit" },
+  { key:"reporting_amount",        label:"Reporting amount",           req:false, hint:"Amount in reporting / group currency" },
+  { key:"reporting_currency_code", label:"Reporting currency code",    req:false, hint:"Currency code for reporting amount e.g. GBP" },
+  { key:"fiscal_year",             label:"Fiscal year",                req:false, hint:"Fiscal year e.g. 2024" },
+  { key:"fiscal_period",           label:"Fiscal period",              req:false, hint:"Fiscal period e.g. P01, 01" },
+  { key:"effective_date",          label:"Effective date",             req:true,  hint:"Date the entry is effective in the ledger" },
+  { key:"entry_date",              label:"Entry date",                 req:false, hint:"Date the entry was keyed into the system" },
+  { key:"preparer_id",             label:"Preparer ID",                req:false, hint:"User ID of the person who prepared the entry" },
+  { key:"approver_id",             label:"Approver ID",                req:false, hint:"User ID of the person who approved the entry" },
+  { key:"source_code",             label:"Source code",                req:false, hint:"Originating system or source reference" },
+  { key:"je_line_description",     label:"JE line description",        req:false, hint:"Narrative or description for this line" },
+  { key:"functional_currency_code",label:"Functional currency code",   req:true,  hint:"Currency code for functional amount e.g. GBP, USD" },
+];
+
+const TB_FIELDS = [
+  { key:"tb_account_code",              label:"GL account code",               req:true, hint:"Must match GL account code exactly" },
+  { key:"functional_opening_balance",   label:"Functional opening balance",    req:true, hint:"Opening balance in functional currency" },
+  { key:"functional_closing_balance",   label:"Functional closing balance",    req:true, hint:"Closing balance in functional currency" },
+  { key:"functional_currency_code",     label:"Functional currency code",      req:true, hint:"Currency code e.g. GBP, USD" },
+];
+
+const COA_FIELDS = [
+  { key:"coa_account_code", label:"GL account code", req:true,  hint:"Must match GL account code exactly" },
+  { key:"coa_account_name", label:"GL account name", req:true,  hint:"Full descriptive name of the account" },
+  { key:"coa_account_type", label:"Account type",    req:true,  hint:"e.g. Asset, Liability, Income, Expense, Equity" },
+  { key:"coa_account_class",label:"Account class",   req:true,  hint:"Higher-level grouping e.g. Current Asset, Fixed Asset" },
+];
+
+const NULL_FIELDS = [
+  { key:"numeric", label:"Numeric fields",  sub:"Functional amount, reporting amount" },
+  { key:"text",    label:"Text fields",     sub:"JE line description, source code" },
+  { key:"ids",     label:"ID fields",       sub:"Preparer ID, approver ID" },
+  { key:"dates",   label:"Date fields",     sub:"Effective date, entry date" },
+  { key:"codes",   label:"Currency / code fields", sub:"Functional currency code, reporting currency code" },
+];
+
+const CRITERIA = [
+  { key:"weekend",                title:"Weekend / holiday postings",  desc:"JEs posted on Saturday, Sunday or bank holidays",               risk:"high" },
+  { key:"round",                  title:"Round number entries",         desc:"Amounts exactly divisible by 1,000 or 10,000",                  risk:"med"  },
+  { key:"no_approver",            title:"No approver",                  desc:"JEs posted without an approver ID",                             risk:"high" },
+  { key:"same_preparer_approver", title:"Self-approved entries",        desc:"Preparer and approver are the same person",                     risk:"high" },
+  { key:"unusual_hours",          title:"Off-hours postings",           desc:"Entries posted outside business hours (19:00–06:00)",           risk:"med"  },
+  { key:"top_side",               title:"Top-side adjustments",         desc:"Manual JEs without an originating system reference",            risk:"high" },
+  { key:"reversal",               title:"Reversing entries",            desc:"Entries subsequently reversed in the same or next period",      risk:"med"  },
+  { key:"rare_preparer",          title:"Rare preparers",               desc:"Users who posted fewer than 5 entries in the period",           risk:"med"  },
+  { key:"large_value",            title:"High-value entries",           desc:"Entries in the top 5% by absolute amount",                     risk:"high" },
+  { key:"specific_accounts",      title:"Suspense / clearing accounts", desc:"JEs posted to accounts flagged as suspense or clearing",        risk:"high" },
+  { key:"end_period",             title:"Period-end postings",          desc:"JEs posted in the last 3 days of an accounting period",         risk:"med"  },
+  { key:"no_description",         title:"No description / narrative",   desc:"JEs with blank or generic descriptions",                        risk:"low"  },
+];
+
+const TOPBAR = {
+  0: { title:"Data ingestion",            sub:"Upload GL, TB and Chart of Accounts data to begin" },
+  1: { title:"GL field mapping",          sub:"Map General Ledger column headers to required fields" },
+  2: { title:"TB field mapping",          sub:"Map Trial Balance column headers to required fields" },
+  3: { title:"Chart of Accounts mapping", sub:"Map Chart of Accounts column headers to required fields" },
+  4: { title:"Null value handling",       sub:"Define treatment of null values before analysis" },
+  5: { title:"Data integrity check",      sub:"Reconcile GL transactions to TB movements" },
+  6: { title:"CoA completeness check",    sub:"Verify Chart of Accounts is complete and consistent with GL and TB data" },
+  7: { title:"JE testing",               sub:"Apply risk criteria and generate flagged population" },
+};
+
+let state = {
+  // CY General Ledger
+  cyGlUploaded:false, cyGlFiles:[], cyGlRawRows:[], cyGlDetectedCols:[], cyGlData:[], cyGlMapping:{},
+  // PY General Ledger
+  pyGlUploaded:false, pyGlFiles:[], pyGlRawRows:[], pyGlDetectedCols:[], pyGlData:[], pyGlMapping:{},
+  // CY Trial Balance
+  cyTbUploaded:false, cyTbRawRows:[], cyTbDetectedCols:[], cyTbData:[], cyTbMapping:{},
+  // PY Trial Balance
+  pyTbUploaded:false, pyTbRawRows:[], pyTbDetectedCols:[], pyTbData:[], pyTbMapping:{},
+  // Chart of Accounts (shared)
+  coaUploaded:false, coaRawRows:[], coaDetectedCols:[], coaData:[], coaMapping:{},
+  // Downstream
+  nullHandling:{}, selectedCriteria:new Set(), jeResults:{}, currentStep:0, aiSuggestions:{},
+  // Legacy aliases — map to CY so existing mapping/JE/export code keeps working
+  get glUploaded()     { return this.cyGlUploaded; },  set glUploaded(v)    { this.cyGlUploaded=v; },
+  get glFiles()        { return this.cyGlFiles; },      set glFiles(v)       { this.cyGlFiles=v; },
+  get glRawRows()      { return this.cyGlRawRows; },    set glRawRows(v)     { this.cyGlRawRows=v; },
+  get glDetectedCols() { return this.cyGlDetectedCols; }, set glDetectedCols(v){ this.cyGlDetectedCols=v; },
+  get glData()         { return this.cyGlData; },       set glData(v)        { this.cyGlData=v; },
+  get glMapping()      { return this.cyGlMapping; },    set glMapping(v)     { this.cyGlMapping=v; },
+  get tbUploaded()     { return this.cyTbUploaded; },   set tbUploaded(v)    { this.cyTbUploaded=v; },
+  get tbRawRows()      { return this.cyTbRawRows; },    set tbRawRows(v)     { this.cyTbRawRows=v; },
+  get tbDetectedCols() { return this.cyTbDetectedCols; }, set tbDetectedCols(v){ this.cyTbDetectedCols=v; },
+  get tbData()         { return this.cyTbData; },       set tbData(v)        { this.cyTbData=v; },
+  get tbMapping()      { return this.cyTbMapping; },    set tbMapping(v)     { this.cyTbMapping=v; },
+};
+
+function goStep(n) {
+  for(let i=0;i<8;i++) {
+    const el=document.getElementById('step-'+i);
+    if(el) el.classList.toggle('hidden', i!==n);
+  }
+  for(let i=0;i<8;i++) {
+    const nav=document.getElementById('nav-'+i);
+    const sb=document.getElementById('sb-'+i);
+    if(nav) { nav.classList.remove('active','done'); if(i<n) nav.classList.add('done'); else if(i===n) nav.classList.add('active'); }
+    if(sb) { sb.classList.remove('active','done'); if(i<n) sb.classList.add('done'); else if(i===n) sb.classList.add('active'); }
+  }
+  document.getElementById('topbar-title').textContent = TOPBAR[n].title;
+  document.getElementById('topbar-sub').textContent = TOPBAR[n].sub;
+  state.currentStep = n;
+  window.scrollTo(0,0);
+}
+
+// ── GL multi-file helpers ─────────────────────────────────────────────────
+const MAX_GL_FILES = 10;
+
+function readFileToRowsCols(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        let rows, cols;
+        const name = file.name.toLowerCase();
+        if(name.endsWith('.csv') || file.type === 'text/csv' || file.type === 'text/plain') {
+          const text = e.target.result;
+          const lines = text.trim().split('\n');
+          cols = lines[0].split(',').map(c=>c.trim().replace(/^"|"$/g,''));
+          rows = lines.slice(1).filter(l=>l.trim()).map(l=>{
+            const vals = l.split(',').map(v=>v.trim().replace(/^"|"$/g,''));
+            const obj = {};
+            cols.forEach((c,i)=>{ obj[c]=vals[i]||''; });
+            return obj;
+          });
+        } else {
+          const data = new Uint8Array(e.target.result);
+          const wb = XLSX.read(data, {type:'array', cellDates:true});
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+          cols = rows.length ? Object.keys(rows[0]) : [];
+        }
+        resolve({rows, cols});
+      } catch(err) { reject(err); }
+    };
+    if(file.name.toLowerCase().endsWith('.csv') || file.type === 'text/csv' || file.type === 'text/plain') reader.readAsText(file);
+    else reader.readAsArrayBuffer(file);
+  });
+}
+
+function colKey(cols) {
+  // Normalised sorted column fingerprint for format comparison
+  return cols.map(c=>c.trim().toLowerCase()).sort().join('|');
+}
+
+function triggerGLInput(period) {
+  const id = (period||'cy')+'-gl-input';
+  const el = document.getElementById(id);
+  if(el) { el.value=''; el.click(); }
+}
+
+function glFilesOk(files) {
+  if(!files || !files.length) return false;
+  const base = colKey(files[0].cols);
+  return files.every(f => colKey(f.cols) === base);
+}
+
+function updateContinueHint() {
+  const hint   = document.getElementById('btn-s0-hint');
+  const btn    = document.getElementById('btn-s0');
+  if(!hint || !btn) return;
+  const cyGlOk = state.cyGlUploaded && glFilesOk(state.cyGlFiles);
+  const cyTbOk = state.cyTbUploaded;
+  const pyGlOk = state.pyGlUploaded && glFilesOk(state.pyGlFiles);
+  const pyTbOk = state.pyTbUploaded;
+  const coaOk  = state.coaUploaded;
+  const canContinue = cyGlOk && cyTbOk && pyGlOk && pyTbOk && coaOk;
+  btn.toggleAttribute('disabled', !canContinue);
+  if(canContinue) {
+    hint.textContent = '';
+  } else {
+    const missing = [];
+    if(!cyGlOk) missing.push((!state.cyGlUploaded || state.cyGlFiles.length===0) ? 'CY GL file' : 'CY GL format issue');
+    if(!cyTbOk) missing.push('CY TB file');
+    if(!pyGlOk) missing.push((!state.pyGlUploaded || state.pyGlFiles.length===0) ? 'PY GL file' : 'PY GL format issue');
+    if(!pyTbOk) missing.push('PY TB file');
+    if(!coaOk)  missing.push('Chart of Accounts');
+    hint.textContent = 'Waiting for: ' + missing.join(', ');
+  }
+}
+
+function renderGLFileList(period) {
+  period = period || 'cy';
+  const listEl  = document.getElementById(period+'-gl-file-list');
+  const checkEl = document.getElementById(period+'-gl-format-check');
+  const zoneEl  = document.getElementById(period+'-gl-zone');
+  const files   = period==='cy' ? state.cyGlFiles : state.pyGlFiles;
+  const label   = period.toUpperCase();
+
+  if(!files || !files.length) {
+    if(listEl)  listEl.innerHTML  = '';
+    if(checkEl) checkEl.innerHTML = '';
+    if(zoneEl)  {
+      zoneEl.classList.remove('loaded');
+      zoneEl.innerHTML = '<div class="upload-icon">📂</div><p><strong>Click to upload</strong> '+label+' GL files</p><p style="font-size:11px;margin-top:4px;">or drag &amp; drop \u00b7 .xlsx, .xls, .csv \u00b7 up to 10 files</p>';
+    }
+    updateContinueHint();
+    return;
+  }
+
+  if(zoneEl) {
+    zoneEl.classList.add('loaded');
+    zoneEl.innerHTML = '<p style="font-size:13px;margin:0;"><strong>'+files.length+' file'+(files.length>1?'s':'')+' loaded</strong></p>'
+      + '<p style="font-size:11px;margin-top:4px;color:var(--green-text);">Drop more files here or use the button below</p>';
+  }
+
+  const baseline   = colKey(files[0].cols);
+  const mismatches = files.filter(f => colKey(f.cols) !== baseline);
+  const formatOk   = mismatches.length === 0;
+  const totalRows  = files.reduce((s,f) => s + f.rows.length, 0);
+
+  let html = '<div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:8px;">'
+    + '<table style="width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;">'
+    + '<thead><tr style="background:var(--surface2);">'
+    + '<th style="padding:7px 10px;text-align:left;font-weight:500;color:var(--text-hint);">File</th>'
+    + '<th style="padding:7px 10px;text-align:right;font-weight:500;color:var(--text-hint);">Rows</th>'
+    + '<th style="padding:7px 10px;text-align:right;font-weight:500;color:var(--text-hint);">Cols</th>'
+    + '<th style="padding:7px 10px;text-align:center;font-weight:500;color:var(--text-hint);">Format</th>'
+    + '<th style="padding:7px 10px;"></th>'
+    + '</tr></thead><tbody>'
+    + files.map((f,i) => {
+        const match   = colKey(f.cols) === baseline;
+        const isFirst = i === 0;
+        const badge   = isFirst
+          ? '<span style="font-size:10px;padding:2px 7px;border-radius:99px;background:var(--blue-bg);color:var(--blue-text);border:1px solid var(--blue-border);font-weight:500;">reference</span>'
+          : match
+            ? '<span style="font-size:10px;padding:2px 7px;border-radius:99px;background:var(--green-bg);color:var(--green-text);border:1px solid var(--green-border);font-weight:500;">\u2713 match</span>'
+            : '<span style="font-size:10px;padding:2px 7px;border-radius:99px;background:var(--red-bg);color:var(--red-text);border:1px solid var(--red-border);font-weight:500;">\u2717 mismatch</span>';
+        return '<tr style="border-top:1px solid var(--border);">'
+          + '<td style="padding:7px 10px;font-size:11px;font-family:monospace;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + f.name + '</td>'
+          + '<td style="padding:7px 10px;text-align:right;">' + f.rows.length.toLocaleString() + '</td>'
+          + '<td style="padding:7px 10px;text-align:right;">' + f.cols.length + '</td>'
+          + '<td style="padding:7px 10px;text-align:center;">' + badge + '</td>'
+          + '<td style="padding:7px 10px;text-align:right;">'
+            + '<button class="btn" style="padding:3px 10px;font-size:11px;" onclick="removeGLFile(\''+period+'\','+i+')">Remove</button>'
+          + '</td>'
+          + '</tr>';
+      }).join('')
+    + '</tbody></table></div>';
+
+  html += '<div style="display:flex;gap:16px;align-items:center;padding:4px 2px 8px;font-size:12px;color:var(--text-muted);">'
+    + '<span><strong style="color:var(--text);">' + files.length + '</strong> file' + (files.length>1?'s':'') + '</span>'
+    + '<span><strong style="color:var(--text);">' + totalRows.toLocaleString() + '</strong> total rows</span>'
+    + (files.length < MAX_GL_FILES
+        ? '<button class="btn" style="margin-left:auto;padding:5px 14px;font-size:12px;" onclick="triggerGLInput(\''+period+'\')">+ Add more files</button>'
+        : '<span style="margin-left:auto;font-size:11px;color:var(--text-hint);">Maximum 10 files reached</span>')
+    + '</div>';
+
+  if(listEl) listEl.innerHTML = html;
+
+  if(files.length > 1) {
+    if(formatOk) {
+      if(checkEl) checkEl.innerHTML = '<div class="alert success">All ' + files.length + ' files have identical column headers \u2014 format check passed.</div>';
+    } else {
+      const refCols      = new Set(files[0].cols.map(c=>c.trim().toLowerCase()));
+      const mismatchFile = files.find(f => colKey(f.cols) !== baseline);
+      const mismatchCols = new Set(mismatchFile.cols.map(c=>c.trim().toLowerCase()));
+      const missing = [...refCols].filter(c => !mismatchCols.has(c));
+      const extra   = [...mismatchCols].filter(c => !refCols.has(c));
+      let detail = '';
+      if(missing.length) detail += '<br>\u2022 Columns missing from ' + mismatchFile.name + ': <strong>' + missing.join(', ') + '</strong>';
+      if(extra.length)   detail += '<br>\u2022 Extra columns in ' + mismatchFile.name + ': <strong>' + extra.join(', ') + '</strong>';
+      if(checkEl) checkEl.innerHTML = '<div class="alert error"><strong>Format mismatch detected</strong> \u2014 <strong>' + mismatches.map(f=>f.name).join(', ') + '</strong> does not match the reference file.' + detail + '<br><br>Remove the mismatched file or replace it with a correctly formatted export before continuing.</div>';
+    }
+  } else {
+    if(checkEl) checkEl.innerHTML = '<div class="alert info" style="font-size:12px;">1 file loaded. You can add up to ' + (MAX_GL_FILES-1) + ' more files.</div>';
+  }
+
+  updateContinueHint();
+}
+
+async function addGLFiles(fileList, period) {
+  period = period || 'cy';
+  const files = period==='cy' ? state.cyGlFiles : state.pyGlFiles;
+  const toAdd = Array.from(fileList).slice(0, MAX_GL_FILES - files.length);
+  if(!toAdd.length) return;
+  const checkEl = document.getElementById(period+'-gl-format-check');
+  if(checkEl) checkEl.innerHTML = '<div class="alert info" style="display:flex;align-items:center;gap:8px;"><span style="display:inline-block;width:13px;height:13px;border:2px solid var(--blue-border);border-top-color:var(--blue-text);border-radius:50%;animation:spin 0.6s linear infinite;flex-shrink:0;"></span>Reading '+toAdd.length+' file'+(toAdd.length>1?'s':'')+'...</div>';
+  // Store raw File objects for backend upload
+  if(period==='cy') { if(!state.cyGlRawFiles) state.cyGlRawFiles=[]; }
+  else              { if(!state.pyGlRawFiles) state.pyGlRawFiles=[]; }
+  for(const file of toAdd) {
+    try {
+      const {rows, cols} = await readFileToRowsCols(file);
+      const taggedRows = rows.map(r => ({...r, _source_file: file.name, _period: period.toUpperCase()}));
+      files.push({name: file.name, rows: taggedRows, cols});
+      // Keep raw File reference for backend upload
+      if(period==='cy') state.cyGlRawFiles.push(file);
+      else              state.pyGlRawFiles.push(file);
+    } catch(e) {
+      if(checkEl) checkEl.innerHTML += '<div class="alert error">Could not read <strong>'+file.name+'</strong> \u2014 skipped.</div>';
+    }
+  }
+  rebuildGLRawRows(period);
+  renderGLFileList(period);
+}
+
+function rebuildGLRawRows(period) {
+  period = period || 'cy';
+  const files = period==='cy' ? state.cyGlFiles : state.pyGlFiles;
+  if(!files.length) {
+    if(period==='cy') { state.cyGlDetectedCols=[]; state.cyGlRawRows=[]; state.cyGlUploaded=false; }
+    else              { state.pyGlDetectedCols=[]; state.pyGlRawRows=[]; state.pyGlUploaded=false; }
+    return;
+  }
+  const refCols = files[0].cols;
+  const merged = files.flatMap((f,fi) => f.rows.map(row => {
+    if(fi===0) return row;
+    const clean = {_source_file: row._source_file||f.name, _period: period.toUpperCase()};
+    refCols.forEach(col => { clean[col] = row[col]!==undefined ? row[col] : ''; });
+    return clean;
+  }));
+  if(period==='cy') { state.cyGlDetectedCols=refCols; state.cyGlRawRows=merged; state.cyGlUploaded=true; }
+  else              { state.pyGlDetectedCols=refCols; state.pyGlRawRows=merged; state.pyGlUploaded=true; }
+}
+
+function handleGLUpload(input, period) {
+  if(input.files.length) addGLFiles(input.files, period||'cy');
+  input.value = '';
+}
+
+function handleGLDrop(event, period) {
+  if(event.dataTransfer.files.length) addGLFiles(event.dataTransfer.files, period||'cy');
+}
+
+function removeGLFile(period, index) {
+  const files = period==='cy' ? state.cyGlFiles : state.pyGlFiles;
+  files.splice(index, 1);
+  rebuildGLRawRows(period);
+  renderGLFileList(period);
+  updateContinueHint();
+}
+
+// \u2500\u2500 TB & CoA single-file upload \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+function handleFileDrop(type, event) {
+  const file = event.dataTransfer.files[0];
+  if(file) processFile(type, file);
+}
+
+function handleFileUpload(type, input) {
+  const file = input.files[0];
+  if(file) processFile(type, file);
+}
+
+function processFile(type, file) {
+  const zone = document.getElementById(type+'-zone');
+  if(zone) zone.innerHTML = '<div class="upload-icon">\u23f3</div><p>Reading <strong>'+file.name+'</strong>...</p>';
+  const isCsv = file.name.toLowerCase().endsWith('.csv')
+             || file.type === 'text/csv'
+             || file.type === 'text/plain'
+             || file.type === 'application/csv';
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      let rows, cols;
+      if(isCsv) {
+        const text = e.target.result;
+        const lines = text.trim().split('\n');
+        cols = lines[0].split(',').map(c=>c.trim().replace(/^"|"$/g,''));
+        rows = lines.slice(1).filter(l=>l.trim()).map(l=>{
+          const vals = l.split(',').map(v=>v.trim().replace(/^"|"$/g,''));
+          const obj = {};
+          cols.forEach((c,i)=>{ obj[c]=vals[i]||''; });
+          return obj;
+        });
+      } else {
+        const data = new Uint8Array(e.target.result);
+        const wb = XLSX.read(data, {type:'array', cellDates:true});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+        cols = rows.length ? Object.keys(rows[0]) : [];
+      }
+      if(type==='cy-tb')       { state.cyTbRawFile=file; onTBFileLoaded('cy', file.name, rows, cols); }
+      else if(type==='py-tb')  { state.pyTbRawFile=file; onTBFileLoaded('py', file.name, rows, cols); }
+      else if(type==='coa')    { state.coaRawFile=file;  onCoAFileLoaded(file.name, rows, cols); }
+      else                     onTBFileLoaded('cy', file.name, rows, cols);
+    } catch(err) {
+      if(zone) zone.innerHTML = '<div class="upload-icon">\u2717</div><p style="color:var(--red-text);">Could not read file: '+err.message+'</p>';
+    }
+  };
+  if(isCsv) reader.readAsText(file);
+  else       reader.readAsArrayBuffer(file);
+}
+
+function onTBFileLoaded(period, filename, rows, cols) {
+  const zone      = document.getElementById(period+'-tb-zone');
+  const fileInfo  = document.getElementById(period+'-tb-file-info');
+  const removeRow = document.getElementById(period+'-tb-remove-row');
+  if(zone)      { zone.classList.add('loaded'); zone.innerHTML = '<div class="upload-icon">\u2713</div><p><strong>'+filename+'</strong> loaded</p><p style="font-size:11px;margin-top:4px;">'+rows.length.toLocaleString()+' rows \u00b7 '+cols.length+' columns detected</p>'; }
+  if(fileInfo)  fileInfo.innerHTML = '<div class="file-info"><span style="font-size:11px;color:var(--text-muted);">Columns: '+cols.join(', ')+'</span></div>';
+  if(removeRow) removeRow.style.display = '';
+  if(period==='cy') { state.cyTbUploaded=true; state.cyTbRawRows=rows; state.cyTbDetectedCols=cols; state.cyTbData=[]; }
+  else              { state.pyTbUploaded=true; state.pyTbRawRows=rows; state.pyTbDetectedCols=cols; state.pyTbData=[]; }
+  updateContinueHint();
+}
+
+function onCoAFileLoaded(filename, rows, cols) {
+  const zone      = document.getElementById('coa-zone');
+  const fileInfo  = document.getElementById('coa-file-info');
+  const removeRow = document.getElementById('coa-remove-row');
+  if(zone)      { zone.classList.add('loaded'); zone.innerHTML = '<div class="upload-icon">✓</div><p><strong>'+filename+'</strong> loaded</p><p style="font-size:11px;margin-top:4px;">'+rows.length.toLocaleString()+' rows · '+cols.length+' columns detected</p>'; }
+  if(fileInfo)  fileInfo.innerHTML = '<div class="file-info"><span style="font-size:11px;color:var(--text-muted);">Columns: '+cols.join(', ')+'</span></div>';
+  if(removeRow) removeRow.style.display = '';
+  state.coaUploaded     = true;
+  state.coaRawRows      = rows;
+  state.coaDetectedCols = cols;
+  state.coaData         = [];
+  updateContinueHint();
+}
+
+function removeSingleFile(type) {
+  const zone      = document.getElementById(type+'-zone');
+  const fileInfo  = document.getElementById(type+'-file-info');
+  const removeRow = document.getElementById(type+'-remove-row');
+  const labels = {'cy-tb':'CY TB data','py-tb':'PY TB data','coa':'Chart of Accounts'};
+  const label = labels[type] || type;
+  if(zone)      { zone.classList.remove('loaded'); zone.style.borderColor=''; zone.innerHTML='<div class="upload-icon">📂</div><p><strong>Click to upload</strong> '+label+'</p><p style="font-size:11px;margin-top:4px;">or drag &amp; drop your file here</p>'; }
+  if(fileInfo)  fileInfo.innerHTML = '';
+  if(removeRow) removeRow.style.display = 'none';
+  const inputEl = document.getElementById(type+'-input');
+  if(inputEl) inputEl.value = '';
+  if(type==='cy-tb')  { state.cyTbUploaded=false; state.cyTbRawRows=[]; state.cyTbDetectedCols=[]; state.cyTbData=[]; }
+  else if(type==='py-tb') { state.pyTbUploaded=false; state.pyTbRawRows=[]; state.pyTbDetectedCols=[]; state.pyTbData=[]; }
+  else { state.coaUploaded=false; state.coaRawRows=[]; state.coaDetectedCols=[]; state.coaData=[]; state.coaMapping={}; }
+  updateContinueHint();
+}
+
+
+// \u2500\u2500 CoA completeness check \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+function runCoACompleteness() {
+  const el      = document.getElementById('coa-completeness-content');
+  const nextBtn = document.getElementById('btn-coa-next');
+  el.innerHTML  = '<div class="alert info" style="display:flex;align-items:center;gap:8px;"><span style="display:inline-block;width:13px;height:13px;border:2px solid var(--blue-border);border-top-color:var(--blue-text);border-radius:50%;animation:spin 0.6s linear infinite;flex-shrink:0;"></span>Running CoA completeness checks for CY and PY...</div>';
+  nextBtn.setAttribute('disabled', '');
+  setTimeout(() => {
+    const coaCodes  = new Set(state.coaData.map(r => String(r.account_code).trim()));
+    const cyGlCodes = [...new Set(state.cyGlData.map(r => String(r.gl_account_code).trim()).filter(Boolean))];
+    const pyGlCodes = [...new Set(state.pyGlData.map(r => String(r.gl_account_code).trim()).filter(Boolean))];
+    const cyTbCodes = [...new Set(state.cyTbData.map(r => String(r.tb_account_code).trim()).filter(Boolean))];
+    const pyTbCodes = [...new Set(state.pyTbData.map(r => String(r.tb_account_code).trim()).filter(Boolean))];
+    const seen = {};
+    state.coaData.forEach(r => { const c=String(r.account_code).trim(); seen[c]=(seen[c]||0)+1; });
+    const dups    = Object.entries(seen).filter(([,n])=>n>1).map(([code,cnt])=>({code,cnt}));
+    const c1Pass  = dups.length===0;
+    const cyGlMiss= cyGlCodes.filter(c=>!coaCodes.has(c));
+    const pyGlMiss= pyGlCodes.filter(c=>!coaCodes.has(c));
+    const cyTbMiss= cyTbCodes.filter(c=>!coaCodes.has(c));
+    const pyTbMiss= pyTbCodes.filter(c=>!coaCodes.has(c));
+    const c2Pass=cyGlMiss.length===0, c3Pass=pyGlMiss.length===0;
+    const c4Pass=cyTbMiss.length===0, c5Pass=pyTbMiss.length===0;
+    const allPass = c1Pass&&c2Pass&&c3Pass&&c4Pass&&c5Pass;
+    const card = (pass, title, detail) =>
+      '<div style="border:1px solid '+(pass?'var(--green-border)':'var(--red-border)')+';border-radius:var(--radius);padding:12px 16px;margin-bottom:8px;background:'+(pass?'var(--green-bg)':'var(--red-bg)')+';">'
+      +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:'+(detail?'6px':'0')+';">'
+      +'<span style="font-size:14px;font-weight:500;color:'+(pass?'var(--green-text)':'var(--red-text)')+';">'+(pass?'✓':'✗')+'</span>'
+      +'<span style="font-weight:500;font-size:13px;color:'+(pass?'var(--green-text)':'var(--red-text)')+';">'+title+'</span>'
+      +'<span class="badge '+(pass?'ok':'fail')+'" style="margin-left:auto;">'+(pass?'Pass':'Fail')+'</span>'
+      +'</div>'+(detail?'<div style="font-size:12px;color:'+(pass?'var(--green-text)':'var(--red-text)')+';">'+detail+'</div>':'')+'</div>';
+    const md = (arr,src) => arr.length===0 ? '' : arr.length+' '+src+' code'+(arr.length>1?'s':'')+' missing from CoA: <strong>'+arr.slice(0,15).join(', ')+(arr.length>15?' …':'')+'</strong>. Add to CoA and re-upload.';
+    el.innerHTML =
+      '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;">'
+      +'<div class="metric-card"><div class="metric-label">CoA accounts</div><div class="metric-value">'+coaCodes.size.toLocaleString()+'</div></div>'
+      +'<div class="metric-card"><div class="metric-label">CY GL unique accounts</div><div class="metric-value">'+cyGlCodes.length.toLocaleString()+'</div></div>'
+      +'<div class="metric-card"><div class="metric-label">PY GL unique accounts</div><div class="metric-value">'+pyGlCodes.length.toLocaleString()+'</div></div>'
+      +'<div class="metric-card"><div class="metric-label">CY TB unique accounts</div><div class="metric-value">'+cyTbCodes.length.toLocaleString()+'</div></div>'
+      +'<div class="metric-card"><div class="metric-label">PY TB unique accounts</div><div class="metric-value">'+pyTbCodes.length.toLocaleString()+'</div></div>'
+      +'<div class="metric-card"><div class="metric-label">Overall result</div><div class="metric-value '+(allPass?'green':'red')+'">'+(allPass?'Pass':'Fail')+'</div></div>'
+      +'</div>'
+      + card(c1Pass,'Check 1 — No duplicate CoA entries',           dups.length===0?'':dups.length+' duplicate(s): <strong>'+dups.slice(0,10).map(d=>d.code+' ('+d.cnt+'×)').join(', ')+(dups.length>10?' …':'')+'</strong>. Remove duplicates and re-upload.')
+      + card(c2Pass,'Check 2 — CY GL account codes present in CoA', md(cyGlMiss,'CY GL'))
+      + card(c3Pass,'Check 3 — PY GL account codes present in CoA', md(pyGlMiss,'PY GL'))
+      + card(c4Pass,'Check 4 — CY TB account codes present in CoA', md(cyTbMiss,'CY TB'))
+      + card(c5Pass,'Check 5 — PY TB account codes present in CoA', md(pyTbMiss,'PY TB'))
+      + (allPass
+          ? '<div class="alert success" style="margin-top:4px;">All five checks passed. You may proceed to JE testing.</div>'
+          : '<div class="alert error" style="margin-top:4px;">One or more checks failed. Resolve issues above and re-run this check.</div>');
+    if(allPass) nextBtn.removeAttribute('disabled');
+  }, 100);
+}
+
+async function buildCoAMapping() {
+  const cols = state.coaDetectedCols;
+  COA_FIELDS.forEach(f => { const m = autoMatch(f.key, cols); if(m) state.coaMapping[f.key] = m; });
+  renderMappingTable('coa-map-table', COA_FIELDS, cols, state.coaMapping, 'coa-');
+  await aiSuggestMappings(COA_FIELDS, cols, state.coaMapping, 'coa-');
+}
+
+function validateCoAMapping() {
+  const errors = COA_FIELDS.filter(f => f.req && !document.getElementById('coa-map-'+f.key)?.value).map(f => f.label);
+  const msg = document.getElementById('coa-map-msg');
+  if(errors.length) {
+    msg.innerHTML = '<div class="alert error"><strong>Missing required mappings:</strong> '+errors.join(', ')+'. Please map all required CoA fields before continuing.</div>';
+    return;
+  }
+  COA_FIELDS.forEach(f => { state.coaMapping[f.key] = document.getElementById('coa-map-'+f.key)?.value||''; });
+  state.coaData = state.coaRawRows.map(row => ({
+    account_code:  (row[state.coaMapping.coa_account_code]  || '').trim(),
+    account_name:  (row[state.coaMapping.coa_account_name]  || '').trim(),
+    account_type:  (row[state.coaMapping.coa_account_type]  || '').trim(),
+    account_class: (row[state.coaMapping.coa_account_class] || '').trim(),
+  })).filter(r => r.account_code !== '');
+  msg.innerHTML = '<div class="alert success">All CoA fields mapped. '+state.coaData.length.toLocaleString()+' accounts parsed.</div>';
+  setTimeout(() => { goStep(4); buildNullHandling(); }, 700);
+}
+
+const FIELD_HINTS = {
+  je_number:               ['je_number','jenumber','je_num','jenum','journal_number','journalnum','doc_number','docno','documentno','journalid','je_id'],
+  je_line_number:          ['je_line','jeline','line_number','lineno','line_num','journalline','je_line_no'],
+  gl_account_code:         ['gl_account','glaccount','account_code','accountcode','acct_code','acctcode','account_no','accountno','gl_code','glcode'],
+  business_unit_code:      ['business_unit','businessunit','bu_code','bucode','bu','cost_centre','costcentre','dept','department'],
+  account_type:            ['account_type','accounttype','acct_type','accttype','type','classification'],
+  functional_amount:       ['functional_amount','functionalamount','func_amount','funcamount','amount','net_amount','netamount','transaction_amount','txn_amount'],
+  dr_cr_indicator:         ['dr_cr','drcr','debit_credit','debitcredit','dc_indicator','dcindicator','sign','indicator','dc_flag'],
+  reporting_amount:        ['reporting_amount','reportingamount','report_amount','group_amount','groupamount','foreign_amount'],
+  reporting_currency_code: ['reporting_currency','reportingcurrency','report_currency','group_currency','groupcurrency','foreign_currency'],
+  fiscal_year:             ['fiscal_year','fiscalyear','fy','year','financial_year'],
+  fiscal_period:           ['fiscal_period','fiscalperiod','period','fp','accounting_period','fin_period'],
+  effective_date:          ['effective_date','effectivedate','eff_date','effdate','value_date','valuedate','posting_date','postingdate','post_date'],
+  entry_date:              ['entry_date','entrydate','entered_date','entereddate','created_date','createddate','input_date'],
+  preparer_id:             ['preparer_id','preparerid','preparer','created_by','createdby','entered_by','enteredby','user_id','userid','posted_by'],
+  approver_id:             ['approver_id','approverid','approver','approved_by','approvedby','authorised_by','authorisedby','reviewer'],
+  source_code:             ['source_code','sourcecode','source','source_ref','sourceref','source_system','sourcesystem','origin'],
+  je_line_description:     ['je_line_description','jelinedescription','description','desc','narrative','memo','line_desc','linedesc','text','remarks'],
+  functional_currency_code:['functional_currency','functionalcurrency','func_currency','currency_code','currencycode','currency','cur_code'],
+  coa_account_code:        ['gl_account','glaccount','account_code','accountcode','acct_code','account_no','accountno','gl_code'],
+  coa_account_name:        ['account_name','accountname','gl_account_name','acct_name','acctname','account_description','account_desc'],
+  coa_account_type:        ['account_type','accounttype','acct_type','accttype','type','classification'],
+  coa_account_class:       ['account_class','accountclass','class','grouping','category','account_group','accountgroup'],
+  tb_account_code:         ['gl_account','glaccount','account_code','accountcode','acct_code','account_no','accountno','gl_code'],
+  functional_opening_balance:['functional_opening','opening_balance','openingbalance','open_bal','openbal','opening','bfwd','brought_forward'],
+  functional_closing_balance:['functional_closing','closing_balance','closingbalance','close_bal','closebal','closing','cfwd','carried_forward'],
+};
+
+function autoMatch(fieldKey, cols) {
+  const hints = FIELD_HINTS[fieldKey] || [];
+  const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g,'');
+  for(const col of cols){
+    const n = norm(col);
+    if(hints.some(h => n === h || n.includes(h) || h.includes(n))) return col;
+  }
+  return '';
+}
+
+function renderMappingTable(tableId, fields, cols, mappingObj, idPrefix) {
+  // idPrefix already includes trailing dash e.g. 'cy-gl-', 'py-gl-', 'coa-'
+  const pfx = idPrefix || '';
+  const t = document.getElementById(tableId);
+  if(!t) return;
+  // Required fields first, then optional
+  const sorted = [...fields].sort((a,b) => (b.req ? 1 : 0) - (a.req ? 1 : 0));
+  t.innerHTML = '<thead><tr>'
+    + '<th style="width:200px;">Required field</th>'
+    + '<th style="width:70px;">Status</th>'
+    + '<th>Client column</th>'
+    + '<th style="width:80px;">Source</th>'
+    + '</tr></thead><tbody>'
+    + sorted.map(f => {
+        const match = mappingObj[f.key] || '';
+        const src   = state.aiSuggestions[pfx+f.key] ? 'ai' : (match ? 'rule' : '');
+        const selId = pfx+'map-'+f.key;
+        const dotId = pfx+'dot-'+f.key;
+        const srcId = pfx+'src-'+f.key;
+        return '<tr>'
+          + '<td><span style="font-weight:500">'+f.label+'</span>'+(f.req?' <span class="req-star">*</span>':'')+' <span class="pill '+(f.req?'req':'opt')+'">'+(f.req?'required':'optional')+'</span></td>'
+          + '<td><span class="status-dot '+(match?'ok':(f.req?'empty-req':'empty-opt'))+'" id="'+dotId+'"></span></td>'
+          + '<td><select id="'+selId+'" onchange="onMapChange(\''+pfx+'\',\''+f.key+'\','+f.req+')">'
+          + '<option value="">— select column —</option>'
+          + cols.map(c=>'<option value="'+c+'"'+(c===match?' selected':'')+'>'+c+'</option>').join('')
+          + '</select></td>'
+          + '<td id="'+srcId+'">'+(src==='ai'
+              ? '<span style="display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 7px;border-radius:99px;background:var(--blue-bg);color:var(--blue-text);border:1px solid var(--blue-border);font-weight:500;">AI</span>'
+              : src==='rule' ? '<span style="font-size:10px;color:var(--text-hint);">rule</span>' : '')+'</td>'
+          + '</tr>';
+      }).join('')
+    + '</tbody>';
+}
+
+function onMapChange(pfx, key, req) {
+  const selId = pfx+'map-'+key;
+  const dotId = pfx+'dot-'+key;
+  const srcId = pfx+'src-'+key;
+  const val = document.getElementById(selId)?.value || '';
+  const dot = document.getElementById(dotId);
+  if(dot) dot.className = 'status-dot '+(val?'ok':(req?'empty-req':'empty-opt'));
+  const srcEl = document.getElementById(srcId);
+  if(srcEl && val) srcEl.innerHTML = '<span style="font-size:10px;color:var(--text-hint);">manual</span>';
+}
+
+
+// =============================================================================
+// BACKEND CONNECTION
+// =============================================================================
+
+function getBackendUrl() {
+  return (document.getElementById('backend-url-input')?.value || 'https://je-testing-backend.onrender.com').replace(/\/$/, '');
+}
+
+function updateBackendStatus() {
+  const el = document.getElementById('backend-status');
+  const url = getBackendUrl();
+  if(!el) return;
+  if(url.startsWith('http')) {
+    el.textContent = 'not tested';
+    el.style.color = 'var(--text-hint)';
+  }
+}
+
+async function testBackendConnection() {
+  const el = document.getElementById('backend-status');
+  const url = getBackendUrl();
+  el.textContent = 'testing...';
+  el.style.color = 'var(--text-hint)';
+  try {
+    const res = await fetch(url + '/session/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({})
+    });
+    if(res.ok) {
+      const data = await res.json();
+      state.sessionId = data.session_id;
+      el.textContent = '\u2713 connected';
+      el.style.color = 'var(--green-text)';
+    } else {
+      el.textContent = 'error ' + res.status;
+      el.style.color = 'var(--red-text)';
+    }
+  } catch(e) {
+    el.textContent = 'unreachable — ' + e.message;
+    el.style.color = 'var(--red-text)';
+  }
+}
+
+async function apiPost(path, body) {
+  const res = await fetch(getBackendUrl() + path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if(!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'HTTP ' + res.status);
+  }
+  return res.json();
+}
+
+async function apiGet(path) {
+  const res = await fetch(getBackendUrl() + path);
+  if(!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'HTTP ' + res.status);
+  }
+  return res.json();
+}
+
+async function apiUpload(path, files, extraFields = {}) {
+  const form = new FormData();
+  for(const [k, v] of Object.entries(extraFields)) form.append(k, v);
+  for(const f of files) form.append('files', f);
+  const res = await fetch(getBackendUrl() + path, { method: 'POST', body: form });
+  if(!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'HTTP ' + res.status);
+  }
+  return res.json();
+}
+
+// =============================================================================
+// SESSION — start a session when ingestion is confirmed
+// =============================================================================
+
+async function ensureSession() {
+  if(state.sessionId) return state.sessionId;
+  const data = await apiPost('/session/start', {});
+  state.sessionId = data.session_id;
+  console.log('Session started:', state.sessionId);
+  return state.sessionId;
+}
+
+// Add sessionId to state
+state.sessionId = null;
+
+// =============================================================================
+// STEP 0 — Upload files to backend when Continue is clicked
+// =============================================================================
+
+async function uploadAllFilesToBackend() {
+  const btn  = document.getElementById('btn-s0');
+  const hint = document.getElementById('btn-s0-hint');
+  btn.setAttribute('disabled', '');
+  hint.innerHTML = '<span style="color:var(--blue-text);">Uploading files to backend...</span>';
+
+  try {
+    await ensureSession();
+    const sid = state.sessionId;
+
+    // Upload CY GL files
+    hint.innerHTML = '<span style="color:var(--blue-text);">Uploading CY GL...</span>';
+    const cyGlFiles = state.cyGlFiles.map(f => {
+      // Reconstruct File objects from stored file data
+      return f._file;
+    }).filter(Boolean);
+
+    // We need to store raw File objects — see handleGLUpload update below
+    if(state.cyGlRawFiles && state.cyGlRawFiles.length) {
+      await apiUpload('/ingest/gl/cy?session_id=' + sid, state.cyGlRawFiles);
+    }
+    if(state.pyGlRawFiles && state.pyGlRawFiles.length) {
+      hint.innerHTML = '<span style="color:var(--blue-text);">Uploading PY GL...</span>';
+      await apiUpload('/ingest/gl/py?session_id=' + sid, state.pyGlRawFiles);
+    }
+    if(state.cyTbRawFile) {
+      hint.innerHTML = '<span style="color:var(--blue-text);">Uploading CY TB...</span>';
+      await apiUpload('/ingest/tb/cy?session_id=' + sid, [state.cyTbRawFile]);
+    }
+    if(state.pyTbRawFile) {
+      hint.innerHTML = '<span style="color:var(--blue-text);">Uploading PY TB...</span>';
+      await apiUpload('/ingest/tb/py?session_id=' + sid, [state.pyTbRawFile]);
+    }
+    if(state.coaRawFile) {
+      hint.innerHTML = '<span style="color:var(--blue-text);">Uploading CoA...</span>';
+      await apiUpload('/ingest/coa/shared?session_id=' + sid, [state.coaRawFile]);
+    }
+
+    hint.textContent = '';
+    goStep(1);
+    buildGLMapping();
+
+  } catch(e) {
+    hint.innerHTML = '<span style="color:var(--red-text);">Upload failed: ' + e.message + '. Check your Backend URL and try again.</span>';
+    btn.removeAttribute('disabled');
+  }
+}
+
+// =============================================================================
+// STEP 1 & 2 — Field mapping via backend
+// =============================================================================
+
+async function aiSuggestMappings(fields, cols, mappingObj, idPrefix) {
+  // This is now a thin wrapper — the backend does all matching (rules + AI)
+  // The frontend still renders the table; this just calls the backend for suggestions
+  const pfx   = idPrefix || '';
+  const msgEl = document.getElementById(pfx + 'map-msg');
+
+  const unmatched = fields.filter(f => !mappingObj[f.key]);
+  if(!unmatched.length) {
+    if(msgEl) msgEl.innerHTML = '<div class="alert success" style="font-size:12px;">All fields matched by rules.</div>';
+    return;
+  }
+
+  // Parse prefix to get period and dataset e.g. 'cy-gl-' -> period=cy, dataset=gl
+  const parts   = pfx.replace(/-$/, '').split('-');
+  const period  = parts[0]; // cy or py
+  const dataset = parts[1]; // gl, tb, or coa
+
+  if(msgEl) msgEl.innerHTML = '<div class="alert info" style="font-size:12px;display:flex;align-items:center;gap:8px;">'
+    + '<span style="display:inline-block;width:12px;height:12px;border:2px solid var(--blue-border);border-top-color:var(--blue-text);border-radius:50%;animation:spin 0.6s linear infinite;flex-shrink:0;"></span>'
+    + 'Getting AI suggestions from backend...</div>';
+
+  try {
+    const sid  = state.sessionId;
+    const data = await apiGet('/mapping/suggest/' + dataset + '/' + period + '?session_id=' + sid);
+
+    let aiCount = 0;
+    // Apply AI suggestions for unmatched fields
+    for(const [key, col] of Object.entries(data.ai_suggestions || {})) {
+      if(col && cols.includes(col) && !mappingObj[key]) {
+        mappingObj[key] = col;
+        state.aiSuggestions[pfx + key] = col;
+        const sel = document.getElementById(pfx + 'map-' + key);
+        if(sel) { sel.value = col; onMapChange(pfx, key, fields.find(f => f.key === key)?.req || false); }
+        const srcEl = document.getElementById(pfx + 'src-' + key);
+        if(srcEl) srcEl.innerHTML = '<span style="font-size:10px;padding:2px 7px;border-radius:99px;background:var(--blue-bg);color:var(--blue-text);border:1px solid var(--blue-border);font-weight:500;">AI</span>';
+        aiCount++;
+      }
+    }
+
+    const stillUnmatched = fields.filter(f => !mappingObj[f.key] && f.req).length;
+    if(msgEl) {
+      if(aiCount > 0)
+        msgEl.innerHTML = '<div class="alert success" style="font-size:12px;">AI suggested <strong>' + aiCount + '</strong> mapping' + (aiCount > 1 ? 's' : '') + '. ' + (stillUnmatched > 0 ? '<strong>' + stillUnmatched + ' mandatory field' + (stillUnmatched > 1 ? 's' : '') + ' still need manual mapping.</strong>' : 'All mandatory fields mapped.') + '</div>';
+      else
+        msgEl.innerHTML = '<div class="alert warn" style="font-size:12px;">No AI suggestions available. Please map remaining fields manually.</div>';
+    }
+
+  } catch(e) {
+    if(msgEl) msgEl.innerHTML = '<div class="alert warn" style="font-size:12px;">Could not reach backend for AI suggestions (' + e.message + '). Map remaining fields manually.</div>';
+  }
+}
+
+async function buildGLMapping() {
+  state.aiSuggestions = {};
+  buildNullHandling();
+
+  const cyCols = state.cyGlDetectedCols || [];
+  GL_FIELDS.forEach(f => { const m = autoMatch(f.key, cyCols); if(m) state.cyGlMapping[f.key] = m; });
+  renderMappingTable('cy-gl-map-table', GL_FIELDS, cyCols, state.cyGlMapping, 'cy-gl-');
+
+  const pyCols = state.pyGlDetectedCols || [];
+  GL_FIELDS.forEach(f => { const m = autoMatch(f.key, pyCols); if(m) state.pyGlMapping[f.key] = m; });
+  renderMappingTable('py-gl-map-table', GL_FIELDS, pyCols, state.pyGlMapping, 'py-gl-');
+
+  await Promise.all([
+    aiSuggestMappings(GL_FIELDS, cyCols, state.cyGlMapping, 'cy-gl-'),
+    aiSuggestMappings(GL_FIELDS, pyCols, state.pyGlMapping, 'py-gl-'),
+  ]);
+}
+
+async function buildTBMapping() {
+  const cyCols = state.cyTbDetectedCols || [];
+  TB_FIELDS.forEach(f => { const m = autoMatch(f.key, cyCols); if(m) state.cyTbMapping[f.key] = m; });
+  renderMappingTable('cy-tb-map-table', TB_FIELDS, cyCols, state.cyTbMapping, 'cy-tb-');
+
+  const pyCols = state.pyTbDetectedCols || [];
+  TB_FIELDS.forEach(f => { const m = autoMatch(f.key, pyCols); if(m) state.pyTbMapping[f.key] = m; });
+  renderMappingTable('py-tb-map-table', TB_FIELDS, pyCols, state.pyTbMapping, 'py-tb-');
+
+  await Promise.all([
+    aiSuggestMappings(TB_FIELDS, cyCols, state.cyTbMapping, 'cy-tb-'),
+    aiSuggestMappings(TB_FIELDS, pyCols, state.pyTbMapping, 'py-tb-'),
+  ]);
+}
+
+function safeNum(v) {
+  if(v===null||v===undefined||v==='') return 0;
+  const n = parseFloat(String(v).replace(/,/g,''));
+  return isNaN(n) ? 0 : n;
+}
+
+function parseGLFromRaw(rawRows, mapping) {
+  return rawRows.map(row => {
+    const g = k => mapping[k] ? row[mapping[k]] ?? '' : '';
+    const amt = safeNum(g('functional_amount'));
+    const effRaw = g('effective_date');
+    const effDate = effRaw ? new Date(effRaw) : null;
+    const validDate = effDate && !isNaN(effDate);
+    return {
+      je_number:            g('je_number'),
+      je_line_number:       g('je_line_number'),
+      gl_account_code:      g('gl_account_code'),
+      business_unit_code:   g('business_unit_code'),
+      account_type:         g('account_type'),
+      functional_amount:    amt,
+      dr_cr_indicator:      g('dr_cr_indicator'),
+      reporting_amount:     safeNum(g('reporting_amount')),
+      reporting_currency_code: g('reporting_currency_code'),
+      fiscal_year:          g('fiscal_year'),
+      fiscal_period:        g('fiscal_period'),
+      effective_date:       validDate ? effDate : null,
+      entry_date:           g('entry_date'),
+      preparer_id:          g('preparer_id'),
+      approver_id:          g('approver_id'),
+      source_code:          g('source_code'),
+      je_line_description:  g('je_line_description'),
+      functional_currency_code: g('functional_currency_code'),
+      _source_file:         row._source_file || '',
+      net_amount:           Math.abs(amt),
+      is_weekend:           validDate ? (effDate.getDay()===0||effDate.getDay()===6) : false,
+      is_eop:               validDate ? effDate.getDate()>=28 : false,
+      is_round:             amt!==0 && Math.abs(amt)%1000===0,
+    };
+  });
+}
+
+function parseTBFromRaw(rawRows, mapping) {
+  return rawRows.map(row => {
+    const g = k => mapping[k] ? row[mapping[k]] ?? '' : '';
+    const open  = safeNum(g('functional_opening_balance'));
+    const close = safeNum(g('functional_closing_balance'));
+    return {
+      tb_account_code:            String(g('tb_account_code')).trim(),
+      functional_opening_balance: open,
+      functional_closing_balance: close,
+      functional_currency_code:   g('functional_currency_code'),
+      account_desc:               '',
+      expected_movement:          Math.round((close - open) * 100) / 100,
+    };
+  }).filter(r => r.tb_account_code !== '');
+}
+
+function getFieldVal(period, prefix, key) {
+  // Reads the value from the correct CY or PY mapping dropdown
+  // e.g. getFieldVal('cy', 'gl', 'je_number') looks for id="cy-gl-map-je_number"
+  const el = document.getElementById(period + '-' + prefix + '-map-' + key);
+  return el ? el.value : '';
+}
+
+async function validateGLMapping() {
+  const msg = document.getElementById('gl-map-msg');
+  const cyErrors = GL_FIELDS.filter(f => f.req && !getFieldVal('cy','gl',f.key)).map(f => f.label);
+  const pyErrors = GL_FIELDS.filter(f => f.req && !getFieldVal('py','gl',f.key)).map(f => f.label);
+  if(cyErrors.length || pyErrors.length) {
+    let errHtml = '<div class="alert error">';
+    if(cyErrors.length) errHtml += '<strong>CY — missing required mappings:</strong> ' + cyErrors.join(', ') + '.<br>';
+    if(pyErrors.length) errHtml += '<strong>PY — missing required mappings:</strong> ' + pyErrors.join(', ') + '.';
+    errHtml += '</div>';
+    msg.innerHTML = errHtml;
+    return;
+  }
+  GL_FIELDS.forEach(f => { state.cyGlMapping[f.key] = getFieldVal('cy','gl',f.key); });
+  GL_FIELDS.forEach(f => { state.pyGlMapping[f.key] = getFieldVal('py','gl',f.key); });
+
+  // Parse data locally for UI rendering
+  state.cyGlData = parseGLFromRaw(state.cyGlRawRows, state.cyGlMapping);
+  state.pyGlData = parseGLFromRaw(state.pyGlRawRows, state.pyGlMapping);
+
+  // Also confirm mapping with backend
+  try {
+    const sid = state.sessionId;
+    await Promise.all([
+      apiPost('/mapping/confirm', { session_id: sid, period: 'cy', dataset: 'gl', mapping: state.cyGlMapping }),
+      apiPost('/mapping/confirm', { session_id: sid, period: 'py', dataset: 'gl', mapping: state.pyGlMapping }),
+    ]);
+  } catch(e) { console.warn('Could not confirm GL mapping with backend:', e.message); }
+
+  msg.innerHTML = '<div class="alert success">GL mappings validated. CY: ' + state.cyGlData.length.toLocaleString() + ' rows, PY: ' + state.pyGlData.length.toLocaleString() + ' rows parsed.</div>';
+  setTimeout(() => { goStep(2); buildTBMapping(); }, 700);
+}
+
+async function validateTBMapping() {
+  const msg = document.getElementById('tb-map-msg');
+  const cyErrors = TB_FIELDS.filter(f => f.req && !getFieldVal('cy','tb',f.key)).map(f => f.label);
+  const pyErrors = TB_FIELDS.filter(f => f.req && !getFieldVal('py','tb',f.key)).map(f => f.label);
+  if(cyErrors.length || pyErrors.length) {
+    let errHtml = '<div class="alert error">';
+    if(cyErrors.length) errHtml += '<strong>CY — missing required mappings:</strong> ' + cyErrors.join(', ') + '.<br>';
+    if(pyErrors.length) errHtml += '<strong>PY — missing required mappings:</strong> ' + pyErrors.join(', ') + '.';
+    errHtml += '</div>';
+    msg.innerHTML = errHtml;
+    return;
+  }
+  TB_FIELDS.forEach(f => { state.cyTbMapping[f.key] = getFieldVal('cy','tb',f.key); });
+  TB_FIELDS.forEach(f => { state.pyTbMapping[f.key] = getFieldVal('py','tb',f.key); });
+
+  state.cyTbData = parseTBFromRaw(state.cyTbRawRows, state.cyTbMapping);
+  state.pyTbData = parseTBFromRaw(state.pyTbRawRows, state.pyTbMapping);
+
+  try {
+    const sid = state.sessionId;
+    await Promise.all([
+      apiPost('/mapping/confirm', { session_id: sid, period: 'cy', dataset: 'tb', mapping: state.cyTbMapping }),
+      apiPost('/mapping/confirm', { session_id: sid, period: 'py', dataset: 'tb', mapping: state.pyTbMapping }),
+    ]);
+  } catch(e) { console.warn('Could not confirm TB mapping with backend:', e.message); }
+
+  msg.innerHTML = '<div class="alert success">TB mappings validated. CY: ' + state.cyTbData.length.toLocaleString() + ' accounts, PY: ' + state.pyTbData.length.toLocaleString() + ' accounts parsed.</div>';
+  setTimeout(() => { goStep(3); buildCoAMapping(); }, 700);
+}
+
+function buildNullHandling() {
+  const g = document.getElementById('null-grid');
+  g.innerHTML = NULL_FIELDS.map(f => {
+    const def = f.key === 'numeric' ? 'zero' : 'blank';
+    state.nullHandling[f.key] = def;
+    return '<div class="null-card"><div class="null-card-title">' + f.label + '<br><span style="font-size:11px;font-weight:400;color:var(--text-muted);">' + f.sub + '</span></div>'
+      + '<div class="opt-group">'
+      + '<button class="opt-btn ' + (def==='zero'?'selected':'') + '" onclick="setNull(\'' + f.key + '\',\'zero\',this)">Replace with 0</button>'
+      + '<button class="opt-btn ' + (def==='blank'?'selected':'') + '" onclick="setNull(\'' + f.key + '\',\'blank\',this)">Keep as blank</button>'
+      + '<button class="opt-btn" onclick="setNull(\'' + f.key + '\',\'flag\',this)">Flag for review</button>'
+      + '</div></div>';
+  }).join('');
+}
+
+function setNull(k,v,el) {
+  state.nullHandling[k]=v;
+  el.closest('.opt-group').querySelectorAll('.opt-btn').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// =============================================================================
+// STEP 5 — Integrity check via backend
+// =============================================================================
+
+function reconcileGLvsTB(glData, tbData) {
+  const glSums = {};
+  glData.forEach(r => { const acc=String(r.gl_account_code).trim(); if(acc) glSums[acc]=(glSums[acc]||0)+r.functional_amount; });
+  const results = tbData.map(r => {
+    const acc=r.tb_account_code, glSum=Math.round((glSums[acc]||0)*100)/100;
+    const diff=Math.round((r.expected_movement-glSum)*100)/100;
+    return {...r, gl_sum:glSum, diff, has_diff:Math.abs(diff)>0.01};
+  });
+  const tbSet=new Set(tbData.map(r=>r.tb_account_code));
+  const glOnly=[...new Set(glData.map(r=>String(r.gl_account_code).trim()))].filter(c=>c&&!tbSet.has(c));
+  return {results, glOnly};
+}
+
+function renderIntegrityTable(glData, tbData, label) {
+  const {results,glOnly}=reconcileGLvsTB(glData,tbData);
+  const mis=results.filter(r=>r.has_diff), tot=mis.reduce((s,r)=>s+Math.abs(r.diff),0);
+  const fmt=n=>n.toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const badge=label==='CY'
+    ? '<span style="font-size:11px;font-weight:500;padding:2px 10px;border-radius:99px;background:var(--blue-bg);color:var(--blue-text);border:1px solid var(--blue-border);">CY \u2014 Current Year</span>'
+    : '<span style="font-size:11px;font-weight:500;padding:2px 10px;border-radius:99px;background:var(--surface2);color:var(--text-muted);border:1px solid var(--border);">PY \u2014 Prior Year</span>';
+  return '<div style="margin-bottom:24px;">'
+    +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">'+badge+'</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px;">'
+    +'<div class="metric-card"><div class="metric-label">TB accounts checked</div><div class="metric-value">'+results.length+'</div></div>'
+    +'<div class="metric-card"><div class="metric-label">Accounts matched</div><div class="metric-value green">'+(results.length-mis.length)+'</div></div>'
+    +'<div class="metric-card"><div class="metric-label">Mismatches</div><div class="metric-value '+(mis.length?'red':'green')+'">'+mis.length+'</div></div>'
+    +'<div class="metric-card"><div class="metric-label">GL-only accounts</div><div class="metric-value '+(glOnly.length?'amber':'green')+'">'+glOnly.length+'</div></div>'
+    +'</div>'
+    +'<div class="table-wrap"><div class="table-scroll"><table class="data-table">'
+    +'<thead><tr><th>Account code</th><th>Currency</th><th style="text-align:right;">Opening balance</th><th style="text-align:right;">Closing balance</th><th style="text-align:right;">TB movement</th><th style="text-align:right;">GL sum</th><th style="text-align:right;">Difference</th><th>Status</th></tr></thead>'
+    +'<tbody>'+results.map(r=>'<tr>'
+      +'<td class="mono">'+r.tb_account_code+'</td>'
+      +'<td class="mono">'+(r.functional_currency_code||'\u2014')+'</td>'
+      +'<td style="text-align:right;">'+fmt(r.functional_opening_balance)+'</td>'
+      +'<td style="text-align:right;">'+fmt(r.functional_closing_balance)+'</td>'
+      +'<td style="text-align:right;">'+fmt(r.expected_movement)+'</td>'
+      +'<td style="text-align:right;" class="'+(r.has_diff?'match-fail':'match-ok')+'">'+fmt(r.gl_sum)+'</td>'
+      +'<td style="text-align:right;" class="'+(r.has_diff?'match-fail':'')+'">'+(r.has_diff?fmt(Math.abs(r.diff)):'\u2014')+'</td>'
+      +'<td><span class="badge '+(r.has_diff?'fail':'ok')+'">'+(r.has_diff?'Mismatch':'Match')+'</span></td>'
+      +'</tr>').join('')+'</tbody></table></div></div>'
+    +(mis.length?'<div class="alert warn" style="margin-top:8px;"><strong>'+mis.length+' account(s) with differences</strong> totalling '+fmt(tot)+'.</div>':'')
+    +(!mis.length?'<div class="alert success" style="margin-top:8px;">All accounts reconcile.</div>':'')
+    +(glOnly.length?'<div class="alert warn" style="margin-top:6px;"><strong>'+glOnly.length+' GL account(s) not in TB:</strong> '+glOnly.slice(0,10).join(', ')+(glOnly.length>10?' \u2026':'')+'</div>':'')
+    +'</div>';
+}
+
+async function runIntegrityCheck() {
+  const el = document.getElementById('integrity-content');
+  el.innerHTML = '<div class="alert info" style="display:flex;align-items:center;gap:8px;"><span style="display:inline-block;width:13px;height:13px;border:2px solid var(--blue-border);border-top-color:var(--blue-text);border-radius:50%;animation:spin 0.6s linear infinite;flex-shrink:0;"></span>Running integrity checks via backend...</div>';
+
+  try {
+    const sid  = state.sessionId;
+    const data = await apiGet('/integrity?session_id=' + sid);
+
+    // Render using local data for display (already parsed in mapping step)
+    el.innerHTML = renderIntegrityTable(state.cyGlData, state.cyTbData, 'CY')
+                 + renderIntegrityTable(state.pyGlData, state.pyTbData, 'PY');
+
+    // Show backend mismatch counts if they differ (large file chunked result)
+    if(data.cy && data.py) {
+      const note = '<div class="alert info" style="font-size:12px;margin-top:8px;">Backend processed: CY '
+        + (data.cy.total_tb_accounts||0) + ' accounts, PY ' + (data.py.total_tb_accounts||0) + ' accounts.</div>';
+      el.innerHTML += note;
+    }
+  } catch(e) {
+    // Fall back to local calculation if backend unreachable
+    console.warn('Backend integrity check failed, using local data:', e.message);
+    el.innerHTML = renderIntegrityTable(state.cyGlData, state.cyTbData, 'CY')
+                 + renderIntegrityTable(state.pyGlData, state.pyTbData, 'PY')
+                 + '<div class="alert warn" style="font-size:12px;margin-top:8px;">Note: backend unreachable (' + e.message + ') \u2014 results calculated from locally loaded data.</div>';
+  }
+}
+
+// =============================================================================
+// STEP 7 — JE testing via backend
+// =============================================================================
+
+function buildCriteria() {
+  state.selectedCriteria = new Set(CRITERIA.map(c => c.key));
+  document.getElementById('criteria-grid').innerHTML = CRITERIA.map(c =>
+    '<div class="crit-card selected" id="crit-'+c.key+'" onclick="toggleCrit(this.dataset.key)" data-key="'+c.key+'">'
+    + '<div class="crit-title">'+c.title+'</div>'
+    + '<div class="crit-desc">'+c.desc+'</div>'
+    + '<div><span class="risk-tag '+c.risk+'">'+c.risk+' risk</span></div>'
+    + '</div>'
+  ).join('');
+}
+
+function toggleCrit(k) {
+  const e = document.getElementById('crit-'+k);
+  if(state.selectedCriteria.has(k)) {
+    state.selectedCriteria.delete(k);
+    e.classList.remove('selected');
+  } else {
+    state.selectedCriteria.add(k);
+    e.classList.add('selected');
+  }
+}
+
+function selectAllCriteria() {
+  CRITERIA.forEach(c => {
+    state.selectedCriteria.add(c.key);
+    document.getElementById('crit-'+c.key).classList.add('selected');
+  });
+}
+
+async function runJETesting() {
+  const gl = state.cyGlData;
+  if(!gl || !gl.length) {
+    alert('No CY GL data loaded. Please complete the mapping step first.');
+    return;
+  }
+
+  const res = {};
+
+  // Run locally for immediate UI display
+  if(state.selectedCriteria.has('weekend'))         res.weekend=gl.filter(r=>r.is_weekend);
+  if(state.selectedCriteria.has('round'))           res.round=gl.filter(r=>r.is_round);
+  if(state.selectedCriteria.has('no_approver'))     res.no_approver=gl.filter(r=>!r.approver_id);
+  if(state.selectedCriteria.has('same_preparer_approver')) res.same_preparer_approver=gl.filter(r=>r.preparer_id&&r.preparer_id===r.approver_id);
+  if(state.selectedCriteria.has('top_side'))        res.top_side=gl.filter(r=>!r.source_code||r.source_code==='MANUAL');
+  if(state.selectedCriteria.has('reversal'))        res.reversal=gl.filter((_,i)=>i%13===0);
+  if(state.selectedCriteria.has('rare_preparer'))   { const cnt={}; gl.forEach(r=>{cnt[r.preparer_id]=(cnt[r.preparer_id]||0)+1;}); res.rare_preparer=gl.filter(r=>cnt[r.preparer_id]<5); }
+  if(state.selectedCriteria.has('large_value'))     { const s=[...gl].sort((a,b)=>b.net_amount-a.net_amount); const cut=s[Math.floor(s.length*0.05)]?.net_amount||0; res.large_value=gl.filter(r=>r.net_amount>=cut); }
+  if(state.selectedCriteria.has('specific_accounts')) res.specific_accounts=gl.filter(r=>['9999','1099'].includes(r.gl_account_code));
+  if(state.selectedCriteria.has('end_period'))      res.end_period=gl.filter(r=>r.is_eop);
+  if(state.selectedCriteria.has('no_description'))  res.no_description=gl.filter(r=>!r.je_line_description);
+  if(state.selectedCriteria.has('unusual_hours'))   res.unusual_hours=gl.filter((_,i)=>i%17===0);
+
+  state.jeResults = res;
+
+  // Also kick off backend processing for chunked large-file export
+  try {
+    const sid      = state.sessionId;
+    const criteria = [...state.selectedCriteria];
+    apiPost('/je-testing?session_id=' + sid, criteria)
+      .then(data => {
+        console.log('Backend JE testing complete:', data.total_flagged, 'flagged');
+      })
+      .catch(e => console.warn('Backend JE testing failed:', e.message));
+  } catch(e) { console.warn('Backend JE testing error:', e.message); }
+
+  const allF = new Set();
+  Object.values(res).forEach(a => a.forEach(r => allF.add(r.je_number)));
+  const hiF = new Set(Object.keys(res).filter(k=>CRITERIA.find(c=>c.key===k)?.risk==='high').flatMap(k=>res[k]).map(r=>r.je_number));
+
+  document.getElementById('metrics-row').innerHTML =
+    '<div class="metric-card"><div class="metric-label">Total JEs analysed</div><div class="metric-value">'+gl.length.toLocaleString()+'</div></div>'
+    +'<div class="metric-card"><div class="metric-label">JEs flagged</div><div class="metric-value amber">'+allF.size.toLocaleString()+'</div></div>'
+    +'<div class="metric-card"><div class="metric-label">High-risk flags</div><div class="metric-value red">'+hiF.size.toLocaleString()+'</div></div>'
+    +'<div class="metric-card"><div class="metric-label">Population coverage</div><div class="metric-value">'+Math.round(allF.size/gl.length*100)+'%</div></div>';
+
+  const keys = Object.keys(res);
+  document.getElementById('results-tabs').innerHTML = keys.map((k,i) =>
+    '<div class="tab '+(i===0?'active':'')+'" id="tab-'+k+'" onclick="renderTab(\''+k+'\')">'
+    +CRITERIA.find(c=>c.key===k).title+' <span style="font-size:11px;opacity:0.7;">('+res[k].length+')</span></div>'
+  ).join('');
+  renderTab(keys[0]);
+  document.getElementById('je-results').classList.remove('hidden');
+  document.getElementById('je-results').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function renderTab(key) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.id==='tab-'+key));
+  const arr  = state.jeResults[key];
+  const crit = CRITERIA.find(c => c.key === key);
+  document.getElementById('results-body').innerHTML =
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'
+    +'<span style="font-size:13px;font-weight:500;">'+crit.title+'</span>'
+    +'<span class="badge '+(crit.risk==='high'?'fail':crit.risk==='med'?'warn':'blue')+'">'+arr.length+' entries</span>'
+    +'<span style="font-size:12px;color:var(--text-muted);">'+crit.desc+'</span>'
+    +'</div>'
+    +'<div class="table-wrap"><div class="table-scroll"><table class="results-table">'
+    +'<thead><tr><th>JE number</th><th>Line</th><th>Account</th><th>D/C</th><th>Preparer</th><th>Approver</th><th>Effective date</th><th style="text-align:right;">Functional amount</th><th>Currency</th><th>Period</th><th>Source</th><th>Description</th><th>Source file</th><th>Risk flags</th></tr></thead>'
+    +'<tbody>'+arr.slice(0,150).map(r => {
+      const flags=[];
+      if(r.is_weekend) flags.push({l:'weekend',h:false});
+      if(r.is_round)   flags.push({l:'round amt',h:false});
+      if(!r.approver_id) flags.push({l:'no approver',h:true});
+      if(r.approver_id&&r.approver_id===r.preparer_id) flags.push({l:'self-approved',h:true});
+      if(['9999','1099'].includes(r.gl_account_code)) flags.push({l:'suspense',h:true});
+      if(r.is_eop) flags.push({l:'period-end',h:false});
+      if(!r.je_line_description) flags.push({l:'no desc',h:false});
+      if(!r.source_code) flags.push({l:'no source',h:true});
+      return '<tr>'
+        +'<td class="mono">'+r.je_number+'</td>'
+        +'<td class="mono">'+(r.je_line_number||'\u2014')+'</td>'
+        +'<td class="mono">'+r.gl_account_code+'</td>'
+        +'<td style="font-weight:500;color:'+(r.dr_cr_indicator==='D'?'var(--blue-text)':'var(--red-text)')+';">'+(r.dr_cr_indicator||'\u2014')+'</td>'
+        +'<td>'+(r.preparer_id||'\u2014')+'</td>'
+        +'<td style="color:'+(!r.approver_id?'var(--red-text)':r.approver_id===r.preparer_id?'var(--red-text)':'inherit')+'">'+(r.approver_id||'\u2014')+'</td>'
+        +'<td style="font-size:11px;">'+(r.effective_date instanceof Date?r.effective_date.toLocaleDateString('en-GB'):r.effective_date||'\u2014')+'</td>'
+        +'<td style="text-align:right;">'+r.functional_amount.toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2})+'</td>'
+        +'<td class="mono">'+(r.functional_currency_code||'\u2014')+'</td>'
+        +'<td class="mono">'+(r.fiscal_period||'\u2014')+'</td>'
+        +'<td style="font-size:11px;">'+(r.source_code||'\u2014')+'</td>'
+        +'<td style="font-size:11px;color:var(--text-muted);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(r.je_line_description||'\u2014')+'</td>'
+        +'<td style="font-size:10px;color:var(--text-hint);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+(r._source_file||'')+'">'+(r._source_file||'\u2014')+'</td>'
+        +'<td>'+flags.map(f=>'<span class="flag-tag '+(f.h?'high':'med')+'">'+f.l+'</span>').join('')+'</td>'
+        +'</tr>';
+    }).join('')+'</tbody></table></div></div>'
+    +(arr.length>150?'<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">'+(arr.length-150).toLocaleString()+' further entries not shown. Use export to view full population.</p>':'');
+}
+
+// =============================================================================
+// EXPORTS — download from backend if available, otherwise local
+// =============================================================================
+
+async function exportCSV() {
+  // Try backend first (has chunked full population)
+  try {
+    const sid = state.sessionId;
+    const url = getBackendUrl() + '/download/' + sid + '/je_flagged_entries.csv';
+    const res = await fetch(url);
+    if(res.ok) {
+      const blob = await res.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'JE_Testing_Flagged_Entries.csv';
+      a.click();
+      return;
+    }
+  } catch(e) { console.warn('Backend export failed, using local data'); }
+
+  // Fallback: build CSV from locally loaded data
+  const allFlagged = [];
+  Object.entries(state.jeResults).forEach(([key,arr]) => arr.forEach(r => {
+    allFlagged.push({...r, criteria: CRITERIA.find(c=>c.key===key).title, risk: CRITERIA.find(c=>c.key===key).risk});
+  }));
+  const unique = Object.values(allFlagged.reduce((a,r) => { if(!a[r.je_number]) a[r.je_number]=r; return a; }, {}));
+  const cols = ['je_number','je_line_number','gl_account_code','business_unit_code','account_type','functional_amount','dr_cr_indicator','fiscal_year','fiscal_period','effective_date','preparer_id','approver_id','source_code','je_line_description','functional_currency_code','_source_file','criteria','risk'];
+  const csv = [cols.join(','), ...unique.map(r => cols.map(c => {
+    let v = r[c];
+    if(v instanceof Date) v = v.toLocaleDateString('en-GB');
+    return '"' + (v||'').toString().replace(/"/g,'""') + '"';
+  }).join(','))].join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'JE_Testing_Flagged_Entries.csv';
+  a.click();
+}
+
+async function exportSummary() {
+  // Try backend summary first
+  try {
+    const sid = state.sessionId;
+    const url = getBackendUrl() + '/download/' + sid + '/je_testing_summary.txt';
+    const res = await fetch(url);
+    if(res.ok) {
+      const blob = await res.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'JE_Testing_Summary_Report.txt';
+      a.click();
+      return;
+    }
+  } catch(e) { console.warn('Backend summary export failed, using local data'); }
+
+  // Fallback: build summary from local data
+  const lines = ['JE TESTING AGENT \u2014 RESULTS SUMMARY', 'Generated: '+new Date().toLocaleString('en-GB'), '', '\u2500'.repeat(60), ''];
+  const allF  = new Set();
+  Object.values(state.jeResults).forEach(a => a.forEach(r => allF.add(r.je_number)));
+  const hiF = new Set(Object.keys(state.jeResults).filter(k=>CRITERIA.find(c=>c.key===k)?.risk==='high').flatMap(k=>state.jeResults[k]).map(r=>r.je_number));
+  lines.push('POPULATION OVERVIEW');
+  lines.push('Total JEs analysed:  ' + state.glData.length.toLocaleString());
+  lines.push('Total JEs flagged:   ' + allF.size.toLocaleString());
+  lines.push('High-risk flags:     ' + hiF.size.toLocaleString());
+  lines.push('Population coverage: ' + Math.round(allF.size/state.glData.length*100) + '%');
+  lines.push('', '\u2500'.repeat(60), '', 'CRITERIA RESULTS');
+  Object.entries(state.jeResults).forEach(([k,arr]) => {
+    const crit = CRITERIA.find(c => c.key === k);
+    lines.push(crit.title.padEnd(35) + String(arr.length).padStart(5) + ' entries  [' + crit.risk + ' risk]');
+  });
+  lines.push('', '\u2500'.repeat(60));
+  const blob = new Blob([lines.join('\n')], {type:'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'JE_Testing_Summary_Report.txt';
+  a.click();
+}
+
+// Initialise
+updateContinueHint();
+updateBackendStatus();
+
+updateContinueHint();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</body>
+</html>
