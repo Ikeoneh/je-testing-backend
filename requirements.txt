@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+pandas
+openpyxl
+anthropic
+python-multipart
+aiofiles
+a2wsgi
